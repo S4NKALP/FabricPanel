@@ -10,8 +10,8 @@ from .functions import (
     exclude_keys,
     flatten_dict,
     merge_defaults,
-    run_in_thread,
     validate_widgets,
+    write_scss_settings,
 )
 from .widget_settings import BarConfig
 
@@ -19,14 +19,12 @@ from .widget_settings import BarConfig
 class HydeConfig:
     "A class to read the configuration file and return the default configuration"
 
-    instance = None
+    _instance = None
 
-    @staticmethod
-    def get_default():
-        if HydeConfig.instance is None:
-            HydeConfig.instance = HydeConfig()
-
-        return HydeConfig.instance
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(HydeConfig, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self):
         self.json_config_file = get_relative_path("../config.json")
@@ -34,7 +32,10 @@ class HydeConfig:
         self.theme_config_file = get_relative_path("../theme.json")
 
         self.default_config()
-        self.set_css_settings()
+
+        css_styles = flatten_dict(exclude_keys(self.theme_config, ["name"]))
+
+        write_scss_settings(css_styles, get_relative_path("../styles/_settings.scss"))
 
     def read_json(self, file) -> dict:
         logger.info(f"[Config] Reading json config from {file}")
@@ -64,6 +65,8 @@ class HydeConfig:
             else self.read_config_toml()
         )
 
+        self.theme_config = self.read_json(self.theme_config_file)
+
         validate_widgets(parsed_data, DEFAULT_CONFIG)
 
         for key in exclude_keys(DEFAULT_CONFIG, ["$schema"]):
@@ -78,26 +81,6 @@ class HydeConfig:
 
         self.config = parsed_data
 
-    @run_in_thread
-    def set_css_settings(self):
-        self.theme_config = self.read_json(self.theme_config_file)
-        logger.info("Applying css settings...")
 
-        css_styles = flatten_dict(exclude_keys(self.theme_config, ["name"]))
-
-        settings = ""
-        for setting in css_styles:
-            # Convert python boolean to scss boolean
-            value = (
-                json.dumps(css_styles[setting])
-                if isinstance(css_styles[setting], bool)
-                else css_styles[setting]
-            )
-            settings += f"${setting}: {value};\n"
-
-        with open(get_relative_path("../styles/_settings.scss"), "w") as f:
-            f.write(settings)
-
-
-configuration = HydeConfig.get_default()
+configuration = HydeConfig()
 widget_config = configuration.config

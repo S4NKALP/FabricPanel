@@ -14,7 +14,6 @@ from utils import (
     Colors,
     widget_config,
 )
-from utils.matugen import MatugenUtil
 
 
 @cooldown(2)
@@ -51,10 +50,6 @@ if not general_options["debug"]:
 
 if __name__ == "__main__":
     helpers.ensure_directory(APP_CACHE_DIRECTORY)
-
-    matugen = MatugenUtil("~/.config/hydepanel/assets/images/b-242.jpg")
-
-    matugen.generate_colors()
 
     # Create the status bar
     bar = StatusBar(widget_config)

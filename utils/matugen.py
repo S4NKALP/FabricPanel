@@ -2,11 +2,10 @@ import json
 import os
 from typing import Literal
 
-from fabric.utils import exec_shell_command, get_relative_path
+from fabric.utils import exec_shell_command
 from loguru import logger
 
-from .functions import check_executable_exists, flatten_dict
-from .thread import run_in_thread
+from .functions import check_executable_exists, flatten_dict, write_scss_settings
 
 
 class MatugenUtil:
@@ -20,23 +19,11 @@ class MatugenUtil:
         valid_extensions = (".jpg", ".jpeg", ".png")
         return path.lower().endswith(valid_extensions)
 
-    @run_in_thread
-    def set_css_colors(self, colors):
-        logger.info("Applying css colors...")
+    def set_scss_colors(self, colors, file_path):
+        logger.info("Applying matugen css colors...")
         css_styles = flatten_dict(colors)
 
-        settings = ""
-        for setting in css_styles:
-            # Convert python boolean to scss boolean
-            value = (
-                json.dumps(css_styles[setting])
-                if isinstance(css_styles[setting], bool)
-                else css_styles[setting]
-            )
-            settings += f"${setting}: {value};\n"
-
-        with open(get_relative_path("../styles/_colors.scss"), "w") as f:
-            f.write(settings)
+        write_scss_settings(css_styles, file_path=file_path)
 
     def __init__(
         self,
@@ -88,4 +75,4 @@ class MatugenUtil:
 
         logger.info(f"Colors generated for mode '{self.mode}': {final_colors}")
 
-        self.set_css_colors(final_colors)
+        self.set_scss_colors(final_colors)

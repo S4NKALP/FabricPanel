@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -139,6 +140,22 @@ def flatten_dict(d, parent_key="", sep="-"):
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+@run_in_thread
+def write_scss_settings(css_styles, file_path):
+    settings = ""
+    for setting in css_styles:
+        # Convert python boolean to scss boolean
+        value = (
+            json.dumps(css_styles[setting])
+            if isinstance(css_styles[setting], bool)
+            else css_styles[setting]
+        )
+        settings += f"${setting}: {value};\n"
+
+    with open(file_path, "w") as f:
+        f.write(settings)
 
 
 # Validate the widgets
