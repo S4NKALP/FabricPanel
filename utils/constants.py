@@ -253,6 +253,12 @@ DEFAULT_CONFIG = {
         "monitor_styles": True,
         "location": "top",
         "widget_style": "default",
+        "matugen": {
+            "enabled": False,
+            "mode": "dark",
+            "contrast": 0.0,
+            "wallpaper": "",
+        },
     },
     "power": {
         "icon": "󰐥",

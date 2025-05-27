@@ -51,7 +51,10 @@ class MatugenUtil:
 
         if not self._is_valid_image(self.wallpaper_path):
             raise ValueError(
-                f"Invalid image file: {self.wallpaper_path}. Supported formats: .jpg, .jpeg, .png"
+                (
+                    f"Invalid image file: {self.wallpaper_path}. "
+                    "Supported formats: .jpg, .jpeg, .png"
+                )
             )
 
         self.base_command = (

@@ -189,6 +189,18 @@ Modules = TypedDict(
 )
 
 
+# Matugen configuration
+Matugen = TypedDict(
+    "Matugen",
+    {
+        "enabled": bool,
+        "mode": Literal["dark", "light"],
+        "contrast": float,
+        "wallpaper": str,
+    },
+)
+
+
 # Bar configuration
 General = TypedDict(
     "General",
@@ -198,6 +210,7 @@ General = TypedDict(
         "monitor_styles": bool,
         "location": str,
         "layer": Layer,
+        "matugen": Matugen,
     },
 )
 

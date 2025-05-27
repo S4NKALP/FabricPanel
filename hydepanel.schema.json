@@ -400,6 +400,33 @@
 				},
 				"widget_style": {
 					"$ref": "#/definitions/style"
+				},
+				"matugen":{
+					"type": "object",
+					"properties": {
+						"enabled": {
+							"type": "boolean",
+							"description": "Determines whether the matugen module is enabled."
+						},
+						"mode": {
+							"type": "string",
+							"enum": [
+								"dark",
+								"light"
+							],
+							"description": "Determines the mode of the matugen module."
+						},
+						"contrast": {
+							"type": "number",
+							"default": 0.0,
+							"description": "Determines the contrast of the matugen module."
+						},
+						"wallpaper": {
+							"type": "string",
+							"description": "Specifies the wallpaper to use for the matugen module."
+						}
+					},
+					"required": ["wallpaper"]
 				}
 			}
 		},
