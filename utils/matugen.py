@@ -53,26 +53,30 @@ class MatugenUtil:
 
         print(result)
         if not result:
-            logger.error("Matugen command returned no output.")
+            logger.error("[Matugen] Matugen command returned no output.")
             return
 
         try:
             self.json = json.loads(result)
         except json.JSONDecodeError:
-            logger.exception(f"Failed to parse JSON from matugen output: {result}")
+            logger.exception(
+                f"[Matugen] Failed to parse JSON from matugen output: {result}"
+            )
 
         colors = self.json.get("colors", {})
 
         if not colors:
-            logger.error("No colors found in matugen output.")
+            logger.exception("[Matugen] No colors found in matugen output.")
             return
 
         final_colors = colors.get(self.mode, {})
 
         if not final_colors:
-            logger.error(f"No colors found for mode '{self.mode}' in matugen output.")
+            logger.exception(
+                f"[Matugen] No colors found for mode '{self.mode}' in matugen output."
+            )
             return
 
-        logger.info(f"Colors generated for mode '{self.mode}': {final_colors}")
+        logger.info(f"Colors generated for mode '{self.mode}'")
 
         self.set_scss_colors(final_colors)
