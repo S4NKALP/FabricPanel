@@ -7,6 +7,7 @@ from .dbus_helper import *
 from .exceptions import *
 from .icon_resolver import *
 from .icons import *
+from .matugen import *
 from .monitors import *
 from .occlusion import *
 from .thread import *
