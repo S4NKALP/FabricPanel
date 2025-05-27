@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Literal
 
 from fabric.utils import exec_shell_command, get_relative_path
@@ -46,7 +47,7 @@ class MatugenUtil:
         check_executable_exists("matugen")
         self.normalized_contrast = self._normalize_contrast(contrast)
         self.mode = mode
-        self.wallpaper_path = wallpaper_path
+        self.wallpaper_path = os.path.abspath(os.path.expanduser(wallpaper_path))
 
         if not self._is_valid_image(self.wallpaper_path):
             raise ValueError(

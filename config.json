@@ -241,7 +241,13 @@
 		"auto_hide": false,
 		"debug": true,
 		"monitor_styles": true,
-		"location": "top"
+		"location": "top",
+		"matugen": {
+			"enabled": true,
+			"mode": "dark",
+			"contrast": 0.0,
+			"wallpaper": "~/.config/hydepanel/assets/images/b-242.jpg"
+		}
 	},
 	"overview": {
 		"icon": "󰡃",

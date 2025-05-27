@@ -52,7 +52,7 @@ if not general_options["debug"]:
 if __name__ == "__main__":
     helpers.ensure_directory(APP_CACHE_DIRECTORY)
 
-    matugen = MatugenUtil(get_relative_path("./assets/images/b-242.jpg"))
+    matugen = MatugenUtil("~/.config/hydepanel/assets/images/b-242.jpg")
 
     matugen.generate_colors()
 
