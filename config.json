@@ -166,7 +166,7 @@
 		{
 			"widgets": [
 				"updates",
-				"ocr",
+				"cliphist",
 				"battery"
 			],
 			"spacing": 4,
