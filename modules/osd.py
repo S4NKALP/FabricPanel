@@ -86,7 +86,7 @@ class BrightnessOSDContainer(GenericOSDContainer):
             "brightness_changed", self.on_brightness_changed
         )
 
-    @cooldown(1)
+    @cooldown(0.1)
     def update_brightness(self):
         brightness_percent = self.brightness_service.screen_brightness_percentage
         self.update_values(brightness_percent)
@@ -125,7 +125,7 @@ class AudioOSDContainer(GenericOSDContainer):
             },
         )
 
-    @cooldown(1)
+    @cooldown(0.1)
     def check_mute(self, audio):
         if not audio.speaker:
             return
@@ -139,7 +139,7 @@ class AudioOSDContainer(GenericOSDContainer):
         if speaker := self.audio_service.speaker:
             speaker.connect("notify::volume", self.update_volume)
 
-    @cooldown(1)
+    @cooldown(0.1)
     def update_volume(self, speaker, _):
         speaker.handler_block_by_func(self.update_volume)
         self.emit("volume-changed")
