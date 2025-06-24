@@ -61,8 +61,28 @@ log_levels = (
     | GLib.LogLevelFlags.LEVEL_DEBUG
 )
 
-# Common GTK/GLib log domains
-domains = [None, "Gtk", "GLib", "GLib-GObject", "Gdk", "Pango"]
+# Common GTK/GLib and related log domains
+domains = [
+    None,  # Default domain
+    "Gtk",  # GTK (Graphical Toolkit)
+    "Gdk",  # GDK (Windowing Abstraction Layer)
+    "GLib",  # GLib (Core utility library)
+    "GLib-GObject",  # GObject (Object system and signals)
+    "Pango",  # Pango (Text layout/rendering)
+    "Atk",  # ATK (Accessibility Toolkit)
+    "GIO",  # GIO (I/O and VFS abstraction)
+    "GStreamer",  # GStreamer (Multimedia framework)
+    "Gst",  # GStreamer (sometimes abbreviated domain)
+    "Soup",  # libsoup (HTTP library)
+    "GVfs",  # GNOME Virtual File System
+    "GWeather",  # GNOME Weather library
+    "WebKit",  # WebKitGTK (Web rendering engine)
+    "Vte",  # Virtual Terminal Emulator (GNOME Terminal)
+    "Cogl",  # Cogl (GPU rendering abstraction)
+    "NM",  # NetworkManager
+    "BlueZ",  # Bluetooth stack for Linux
+    "ModemManager",  # Manages mobile broadband connections
+]
 
 for domain in domains:
     GLib.log_set_handler(domain, log_levels, log_handler)
