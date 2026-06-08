@@ -1,16 +1,16 @@
-import os
-import re
 import tempfile
 import urllib.parse
 import urllib.request
 from functools import partial
 
-import gi
 from fabric.utils import (
+    GLib,
+    GObject,
     bulk_connect,
     cooldown,
-    invoke_repeater,
+    idle_add,
     logger,
+    os,
 )
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
@@ -20,13 +20,12 @@ from fabric.widgets.label import Label
 from fabric.widgets.overlay import Overlay
 from fabric.widgets.scale import Scale
 from fabric.widgets.stack import Stack
-from gi.repository import GLib, GObject
 
 from services.mpris import MprisPlayer, MprisPlayerManager
 from shared.animator import cubic_bezier
 from shared.buttons import HoverButton
 from shared.circle_image import CircularImage
-from utils.constants import APP_DATA_DIRECTORY, ASSETS_DIR
+from utils.constants import APP_DATA_DIRECTORY, ASSETS_DIR, NEWLINE_RE
 from utils.functions import (
     ensure_directory,
     get_simple_palette_threaded,
@@ -34,18 +33,12 @@ from utils.functions import (
     rgb_to_css,
     tint_color,
 )
-from utils.icons import text_icons
+from utils.icons import get_text_icon
 from utils.widget_utils import (
     create_scale,
     nerd_font_icon,
     setup_cursor_hover,
 )
-
-gi.require_versions({"GObject": "2.0"})
-
-
-# Pre-compiled regex for newline replacement
-_NEWLINE_RE = re.compile(r"\r?\n")
 
 
 class PlayerBoxStack(Box):
@@ -193,6 +186,7 @@ class PlayerBox(Box):
         # Setup
         self.player: MprisPlayer = player
         self.fallback_cover_path = f"{ASSETS_DIR}/images/disk.png"
+        self._last_temp_art_path: str | None = None
 
         self.image_size = 120
 
@@ -204,6 +198,7 @@ class PlayerBox(Box):
         self.exit = False
         self.angle_direction = 1
         self.skipped = False
+        self._seekbar_timer_id: int | None = None
 
         self.image_box = CircularImage(
             size=self.image_size, image_file=self.fallback_cover_path
@@ -250,18 +245,18 @@ class PlayerBox(Box):
             self.track_title,
             "label",
             GObject.BindingFlags.DEFAULT,
-            lambda _, x: _NEWLINE_RE.sub(" ", x)
-            if x != "" and x is not None
-            else "No Title",  # type: ignore
+            lambda _, x: (
+                NEWLINE_RE.sub(" ", x) if x != "" and x is not None else "No Title"
+            ),  # type: ignore
         )
         self.player.bind_property(
             "artist",
             self.track_artist,
             "label",
             GObject.BindingFlags.DEFAULT,
-            lambda _, x: _NEWLINE_RE.sub(" ", x)
-            if x != "" and x is not None
-            else "No Artist",  # type: ignore
+            lambda _, x: (
+                NEWLINE_RE.sub(" ", x) if x != "" and x is not None else "No Artist"
+            ),  # type: ignore
         )
 
         self.player.bind_property(
@@ -269,9 +264,9 @@ class PlayerBox(Box):
             self.track_album,
             "label",
             GObject.BindingFlags.DEFAULT,
-            lambda _, x: _NEWLINE_RE.sub(" ", x)
-            if x != "" and x is not None
-            else "No Album",  # type: ignore
+            lambda _, x: (
+                NEWLINE_RE.sub(" ", x) if x != "" and x is not None else "No Album"
+            ),  # type: ignore
         )
 
         self.track_info = Box(
@@ -323,23 +318,23 @@ class PlayerBox(Box):
         )
 
         self.skip_next_icon = nerd_font_icon(
-            icon=text_icons["mpris"]["next"],
+            icon=get_text_icon("mpris.next"),
             props={"style_classes": ["panel-font-icon", "player-icon"]},
         )
         self.skip_prev_icon = nerd_font_icon(
-            icon=text_icons["mpris"]["previous"],
+            icon=get_text_icon("mpris.previous"),
             props={"style_classes": ["panel-font-icon", "player-icon"]},
         )
         self.loop_icon = nerd_font_icon(
-            icon=text_icons["mpris"]["loop"],
+            icon=get_text_icon("mpris.loop"),
             props={"style_classes": ["panel-font-icon", "player-icon"]},
         )
         self.shuffle_icon = nerd_font_icon(
-            icon=text_icons["mpris"]["shuffle"],
+            icon=get_text_icon("mpris.shuffle"),
             props={"style_classes": ["panel-font-icon", "player-icon"]},
         )
         self.play_pause_icon = nerd_font_icon(
-            icon=text_icons["mpris"]["paused"],
+            icon=get_text_icon("mpris.paused"),
             props={"style_classes": ["panel-font-icon", "player-icon"]},
         )
 
@@ -432,13 +427,20 @@ class PlayerBox(Box):
             self.length_label.set_label(self.length_str(self.player.length))
             self.seek_bar.set_range(0, duration)
 
-        invoke_repeater(1000, self._move_seekbar)
+        self._stop_seekbar_timer()
+        self._seekbar_timer_id = GLib.timeout_add(1000, self._move_seekbar)
+
+    def _stop_seekbar_timer(self):
+        if self._seekbar_timer_id is not None:
+            GLib.source_remove(self._seekbar_timer_id)
+            self._seekbar_timer_id = None
 
     def _set_notify_value(self, p, *_):
         self.image_box.angle = self.angle_direction * p.value
 
     def on_player_exit(self, _, value):
         self.exit = value
+        self._stop_seekbar_timer()
         self.destroy()
 
     def on_player_next(self, *_):
@@ -486,12 +488,12 @@ class PlayerBox(Box):
 
         if status == "paused":
             self.play_pause_icon.set_label(
-                text_icons["mpris"]["playing"],
+                get_text_icon("mpris.playing"),
             )
 
         if status == "playing":
             self.play_pause_icon.set_label(
-                text_icons["mpris"]["paused"],
+                get_text_icon("mpris.paused"),
             )
 
     def _update_image(self, image_path):
@@ -505,7 +507,23 @@ class PlayerBox(Box):
     def on_accent_color(self, palette):
         default_color = (255, 0, 0)  # fallback color
 
-        base_color = palette[0] if palette else default_color
+        valid_palette: list[tuple[int, int, int]] = (
+            [
+                (int(color[0]), int(color[1]), int(color[2]))
+                for color in palette
+                if (
+                    isinstance(color, (list, tuple))
+                    and len(color) >= 3
+                    and color[0] is not None
+                    and color[1] is not None
+                    and color[2] is not None
+                )
+            ]
+            if isinstance(palette, (list, tuple))
+            else []
+        )
+
+        base_color = valid_palette[0] if valid_palette else default_color
         mix_target = (247, 239, 209)  # #F7EFD1
 
         # Mix base color with the target color
@@ -522,7 +540,12 @@ class PlayerBox(Box):
             f"trough highlight {{ {bg} {border} }} slider {{ {bg} }}"
         )
 
-        css_colors = [rgb_to_css(color) for color in palette]
+        gradient_palette = (
+            valid_palette
+            if valid_palette
+            else [default_color, tint_color(default_color, 0.3)]
+        )
+        css_colors = [rgb_to_css(color) for color in gradient_palette]
         gradient = f"linear-gradient(135deg, {', '.join(css_colors)})"
 
         self.inner_box.set_style(f"background: {gradient};")
@@ -547,29 +570,57 @@ class PlayerBox(Box):
     def _download_and_set_artwork(self, arturl):
         """
         Download the artwork from the given URL asynchronously and update the cover
-        using GLib.idle_add to ensure UI updates occur on the main thread.
+        using idle_add to ensure UI updates occur on the main thread.
         """
         try:
             parsed = urllib.parse.urlparse(arturl)
             suffix = os.path.splitext(parsed.path)[1] or ".png"
-            with urllib.request.urlopen(arturl) as response:
+            with urllib.request.urlopen(arturl, timeout=5) as response:
                 data = response.read()
+
+            old_temp_path = self._last_temp_art_path
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
                 temp_file.write(data)
                 local_arturl = temp_file.name
+            self._last_temp_art_path = local_arturl
+
+            if (
+                old_temp_path
+                and old_temp_path != local_arturl
+                and os.path.exists(old_temp_path)
+            ):
+                try:
+                    os.remove(old_temp_path)
+                except OSError:
+                    logger.debug(f"[Media] Failed to remove temp file: {old_temp_path}")
         except Exception:
             local_arturl = self.fallback_cover_path
-        GLib.idle_add(self._update_image, local_arturl)
+        idle_add(self._update_image, local_arturl)
         return None
 
     def _move_seekbar(self, *_):
         if self.player is None or self.exit:
+            self._seekbar_timer_id = None
             return False
 
         self.position_label.set_label(self.length_str(self.player.position))
         self.seek_bar.set_value(self.player.position)
 
         return True
+
+    def destroy(self):
+        self._stop_seekbar_timer()
+        # Best-effort cleanup of the latest downloaded artwork temp file.
+        if self._last_temp_art_path and os.path.exists(self._last_temp_art_path):
+            try:
+                os.remove(self._last_temp_art_path)
+            except OSError:
+                logger.debug(
+                    f"[Media] Failed to remove temp file: {self._last_temp_art_path}"
+                )
+            finally:
+                self._last_temp_art_path = None
+        super().destroy()
 
     @cooldown(0.1)
     def on_scale_move(self, scale: Scale, event, pos: int):

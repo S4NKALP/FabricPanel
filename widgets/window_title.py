@@ -1,7 +1,5 @@
-import re
-
-from fabric.hyprland.widgets import HyprlandActiveWindow as ActiveWindow
-from fabric.utils import FormattedString, logger, truncate
+from fabric.hyprland.widgets import HyprlandActiveWindow
+from fabric.utils import FormattedString, logger, re, truncate
 
 from shared.widget_container import ButtonWidget
 from utils.constants import WINDOW_TITLE_MAP
@@ -10,24 +8,16 @@ from utils.constants import WINDOW_TITLE_MAP
 _COMPILED_PATTERNS: dict[str, re.Pattern | None] = {}
 
 
-def _get_compiled_pattern(pattern: str) -> re.Pattern | None:
-    """Get or compile a regex pattern, caching the result."""
-    if pattern not in _COMPILED_PATTERNS:
-        try:
-            _COMPILED_PATTERNS[pattern] = re.compile(pattern)
-        except re.error:
-            _COMPILED_PATTERNS[pattern] = None
-    return _COMPILED_PATTERNS[pattern]
-
-
 class WindowTitleWidget(ButtonWidget):
     """a widget that displays the title of the active window."""
 
     def __init__(self, **kwargs):
         super().__init__(name="window_title", **kwargs)
 
+        active_window = HyprlandActiveWindow
+
         # Create an ActiveWindow widget to track the active window
-        self.active_window = ActiveWindow(
+        self.active_window = active_window(
             name="window",
             formatter=FormattedString(
                 "{ get_title(win_title, win_class) }",
@@ -49,7 +39,7 @@ class WindowTitleWidget(ButtonWidget):
         custom_map = self.config.get("title_map", [])
         icon_enabled = self.config.get("icon", True)
 
-        if self.config.get("tooltip", True):
+        if self.config.get("tooltip", True) and self.tooltips_enabled:
             self.set_tooltip_text(win_title)
 
         win_title = truncate(win_title, trunc_size) if trunc else win_title
@@ -59,7 +49,7 @@ class WindowTitleWidget(ButtonWidget):
 
         win_class_lower = win_class.lower()
         for pattern, icon, name in merged_titles:
-            compiled = _get_compiled_pattern(pattern)
+            compiled = self._get_compiled_pattern(pattern)
             if compiled is None:
                 logger.warning(f"[window_title] Invalid regex '{pattern}'")
                 continue
@@ -73,3 +63,12 @@ class WindowTitleWidget(ButtonWidget):
         )
         fallback = truncate(fallback, trunc_size) if trunc else fallback
         return f"󰣆 {fallback}"
+
+    def _get_compiled_pattern(self, pattern: str) -> re.Pattern | None:
+        """Get or compile a regex pattern, caching the result."""
+        if pattern not in _COMPILED_PATTERNS:
+            try:
+                _COMPILED_PATTERNS[pattern] = re.compile(pattern)
+            except re.error:
+                _COMPILED_PATTERNS[pattern] = None
+        return _COMPILED_PATTERNS[pattern]

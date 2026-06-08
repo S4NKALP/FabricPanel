@@ -1,7 +1,7 @@
 # ruff: noqa: E501
 
 
-text_icons = {
+text_nerd_icons = {
     "ui": {
         "window_close": "",
         "question": "",
@@ -16,7 +16,11 @@ text_icons = {
         "camera": "",
         "speakers": "󰓃",
         "package": "",
+        "tick": "",
+        "fold": "",
+        "lock": "",
     },
+    "ethernet": "󰈀",
     "wifi": {
         "connected": "󰤨",
         "disconnected": "󰤩",
@@ -28,6 +32,10 @@ text_icons = {
         "strength_2": "󰤢",
         "strength_3": "󰤥",
         "strength_4": "󰤨",
+    },
+    "idle": {
+        "enabled": "",
+        "disabled": "",
     },
     "mpris": {
         "playing": "",
@@ -59,7 +67,12 @@ text_icons = {
         "disabled": "󰛨",
     },
     "bluetooth": {"enabled": "󰂱", "disabled": "󰂲"},
-    "power": "",
+    "power_menu": {
+        "shutdown": "󰐥",
+        "reboot": "",
+        "suspend": "󰒂",
+        "hibernate": "󰒂",
+    },
     "cpu": "",
     "memory": "",
     "storage": "󰋊",
@@ -67,6 +80,11 @@ text_icons = {
     "thermometer": "",
     "recorder": "󰻂",
     "fallback": "",
+    "battery": {
+        "charging": "󰠠",
+        "low": "󰂎",
+    },
+    "hourglass": "",
     "powerprofiles": {"power-saver": "󰌪", "performance": "󰓅", "balanced": "󰒂"},
     "volume": {
         "overamplified": "󱄠",
@@ -82,10 +100,10 @@ text_icons = {
         "high": "",
     },
     "brightness": {
-        "off": "",  # lowest brightness
-        "low": "",
-        "medium": "",
-        "high": "",  # highest brightness
+        "off": "󰃞",
+        "low": "󰃝",
+        "medium": "󰃟",
+        "high": "󰃠",
     },
     "distro": {
         "deepin": "",
@@ -119,6 +137,27 @@ text_icons = {
         "slackware": "",
     },
 }
+
+
+def get_path(d, path, sep="."):
+    for key in path.split(sep):
+        d = d.get(key, {})
+    return d or None
+
+
+def get_text_icon(name: str) -> str:
+
+    return get_path(text_nerd_icons, name)
+
+
+network_icon_to_text_icons = {
+    "network-wireless-signal-excellent-symbolic": get_text_icon("wifi.strength_4"),
+    "network-wireless-signal-good-symbolic": get_text_icon("wifi.strength_3"),
+    "network-wireless-signal-ok-symbolic": get_text_icon("wifi.strength_2"),
+    "network-wireless-signal-weak-symbolic": get_text_icon("wifi.strength_1"),
+    "network-wireless-signal-none-symbolic": get_text_icon("wifi.strength_0"),
+}
+
 
 # sourced from wttr.in
 WEATHER_SYMBOL_WI_DAY = {

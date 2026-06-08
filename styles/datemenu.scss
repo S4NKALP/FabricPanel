@@ -3,9 +3,8 @@
 @use "common";
 @use "variable";
 
-
 #date_time {
-  @include common.bar-widget-style(
+  @include common.widget-border(
     variable.$bar-widgets-date_time-border-radius,
     variable.$bar-widgets-date_time-border-enabled,
     variable.$bar-widgets-date_time-border-width
@@ -18,7 +17,8 @@
 
   #notification-count {
     font-weight: 700;
-    font-size: 11px;
+    font-size: 10px;
+    margin-right: 6px;
   }
 
   separator {
@@ -32,7 +32,6 @@
 /************** DATE MENU **************/
 
 #date-menu {
-
   #notification-column {
     min-width: 435px;
     min-height: 380px;
@@ -55,8 +54,6 @@
         margin-right: 10px;
         border-width: 2px;
 
-
-
         label {
           padding-left: common.toEm(5);
         }
@@ -67,44 +64,26 @@
         }
 
         &:hover {
-          background-color: theme.$background-alt;
+          @extend %widget_hover;
+          color: theme.$background-dark;
 
           #clear-icon {
             @extend %clear_icon;
             font-size: 13px;
+            color: theme.$background-dark;
           }
         }
       }
     }
 
     .notification-scrollable {
-
-
-
       #notification-list {
         margin-right: variable.$spacing;
 
-        #notification-list-item {
+        #notification-group-row {
           margin-top: 5px;
+          margin-bottom: 7px;
           border-radius: variable.$modules-notification-border-radius;
-          margin-bottom: 6px;
-          transition: background-color 190ms ease;
-
-
-          .close-button {
-            opacity: 0;
-          }
-
-          &:hover {
-            #datemenu-notification-box {
-
-              background-color: theme.$background;
-            }
-
-            .close-button {
-              opacity: 1;
-            }
-          }
 
           &:first-child {
             margin-top: 0;
@@ -113,13 +92,106 @@
           &:last-child {
             margin-bottom: 0;
           }
+
+          #notification-group-deck {
+            transition: opacity 200ms ease-in-out;
+
+            #notification-group-header {
+              padding: variable.$padding;
+              margin-bottom: 8px;
+
+              .notification-group-title {
+                font-size: 0.95em;
+                font-weight: 700;
+              }
+
+              #notification-group-collapse-button {
+                min-height: 0;
+                min-width: 0;
+                padding: 2px 6px;
+                border-radius: variable.$radius;
+                border: variable.$border;
+
+                .panel-font-icon {
+                  font-size: 11px;
+                  color: theme.$text-main;
+                }
+
+                &:hover {
+                  @extend %widget_hover;
+                  color: theme.$background-dark;
+
+                  .panel-font-icon {
+                    color: theme.$background-dark;
+                  }
+                }
+              }
+
+              #notification-group-close-all-button {
+                min-height: 0;
+                min-width: 0;
+                padding: 2px 6px;
+                border-radius: variable.$radius;
+                border: variable.$border;
+
+                .panel-font-icon {
+                  font-size: 11px;
+                  color: theme.$text-main;
+                }
+
+                &:hover {
+                  @extend %widget_hover;
+                  color: theme.$background-dark;
+                  background-color: theme.$accent-red;
+
+                  .panel-font-icon {
+                    color: theme.$background-dark;
+                  }
+                }
+              }
+            }
+
+            #notification-group-peek {
+              margin-bottom: 0;
+
+              .notification-group-peek-layer {
+                min-height: 5px;
+                border-radius: 0 0 variable.$modules-notification-border-radius
+                  variable.$modules-notification-border-radius;
+                background-color: theme.$background;
+                border: variable.$border;
+                border-width: variable.$modules-notification-border-width;
+              }
+
+              .notification-group-peek-layer-depth-1 {
+                margin-left: 10px;
+                margin-right: 10px;
+                opacity: 0.88;
+              }
+
+              .notification-group-peek-layer-depth-2 {
+                margin-left: 16px;
+                margin-right: 16px;
+                opacity: 0.7;
+              }
+            }
+
+            #notification-group-items {
+              margin-top: 6px;
+
+              #datemenu-notification-box {
+                margin-bottom: 6px;
+
+                &:last-child {
+                  margin-bottom: 0;
+                }
+              }
+            }
+          }
         }
-
-
       }
 
       .placeholder {
-
         label {
           font-size: 1em;
         }
@@ -138,7 +210,6 @@
   }
 
   .date-column {
-
     #clock {
       padding: variable.$padding;
 
@@ -158,6 +229,9 @@
       calendar {
         all: unset;
 
+        font-size: 14px;
+        padding: 0.28em;
+
         &.button {
           transition: 200ms;
           border-radius: variable.$radius;
@@ -170,28 +244,21 @@
 
         &:selected {
           box-shadow:
-            inset 0 -5px 0 0 color.mix(theme.$ws-active, transparent, 50%),
-            inset 0 0 0 1px theme.$ws-active;
-          border-radius: variable.$radius * .6;
+            inset 0 -5px 0 0 color.mix(theme.$accent-orange, transparent, 50%),
+            inset 0 0 0 1px theme.$accent-orange;
+          border-radius: variable.$radius * 0.6;
+          font-weight: 900;
         }
 
-        &.header {
-          background-color: transparent;
-          border: 0;
-          color: theme.$ws-hover;
-        }
-
+        &.header,
         &.highlight {
           background-color: transparent;
-          color: theme.$accent-teal;
+          color: theme.$accent-purple;
         }
 
         &:indeterminate {
           color: color.mix(theme.$text-main, transparent, 10%);
         }
-
-        font-size: .98em;
-        padding: .28em;
       }
     }
   }

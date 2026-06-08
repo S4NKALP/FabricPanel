@@ -1,67 +1,122 @@
+import atexit
+import contextlib
 import ctypes
 import html
 import json
-import os
-import re
 import shutil
+import string
 import subprocess
-import time
 from collections import Counter
 from datetime import datetime
 from functools import lru_cache
 from io import BytesIO
-from typing import Any, Callable, Iterable, Literal, Optional
+from typing import Any, Callable, Iterable, List, Literal, Optional, TypeVar
 
-import gi
 import psutil
 from fabric import Application
 from fabric.utils import (
-    FormattedString,
+    Gdk,
+    GdkPixbuf,
+    Gio,
+    GLib,
+    Gtk,
     cooldown,
     exec_shell_command,
     exec_shell_command_async,
     get_relative_path,
+    idle_add,
     invoke_repeater,
     logger,
+    os,
+    time,
 )
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 
 from .colors import Colors
-from .constants import NAMED_COLORS
-from .exceptions import ExecutableNotFoundError
-from .icons import text_icons
-from .thread import run_in_thread, thread
-
-gi.require_versions({"Gtk": "3.0", "Gdk": "3.0", "GdkPixbuf": "2.0"})
-
-# Pre-compiled regex patterns for color validation
-_HEX_COLOR_RE = re.compile(r"^#(?:[a-fA-F0-9]{3,4}|[a-fA-F0-9]{6,8})$")
-_RGB_RE = re.compile(r"^rgb\(\s*(\d{1,3}%?\s*,\s*){2}\d{1,3}%?\s*\)$")
-_RGBA_RE = re.compile(r"^rgba\(\s*(\d{1,3}%?\s*,\s*){3}(0|1|0?\.\d+)\s*\)$")
-
-# Pre-computed constants
-_NAMED_COLORS_SET = frozenset(NAMED_COLORS)
-_SPECIAL_WIDGET_TYPES = frozenset(
-    ("custom_button", "group", "collapsible", "custom_module")
+from .constants import (
+    BYTES_FACTORS,
+    GROUP_TYPES,
+    HEX_COLOR_RE,
+    NAMED_COLORS,
+    RGB_RE,
+    RGBA_RE,
+    SPECIAL_WIDGET_TYPES,
+    TEMP_PATHS,
+    URGENCY_LEVELS,
+    WHITE,
 )
-_GROUP_TYPES = ("widget_groups", "collapsible_groups")
-_URGENCY_LEVELS = frozenset(("low", "normal", "critical"))
-_BYTES_FACTORS = {"kb": 1, "mb": 2, "gb": 3, "tb": 4}
-_WHITE = (255, 255, 255)
+from .decorators import run_in_thread, thread
+from .exceptions import ExecutableNotFoundError
+from .icons import get_text_icon
 
 
-# Function to execute a shell command synchronously with formatted string
-def formatted_exec_shell_command(
-    unformatted_cmd: str, **kwargs
-) -> str | Literal[False]:
-    return exec_shell_command(FormattedString(unformatted_cmd).format(**kwargs))
+def register_temp_resource(path: str):
+    TEMP_PATHS.add(path)
 
 
-# Function to execute a shell command asynchronously with formatted string
-def formatted_exec_shell_command_async(
-    unformatted_cmd: str, **kwargs
-) -> tuple[Gio.Subprocess | None, Gio.DataInputStream]:
-    return exec_shell_command_async(FormattedString(unformatted_cmd).format(**kwargs))
+def normalize_address(address: str | None) -> str | None:
+    if not address:
+        return None
+    return address if address.startswith("0x") else f"0x{address}"
+
+
+def cleanup_temp_resources():
+    """Remove all registered temp files/directories."""
+    for path in list(TEMP_PATHS):
+        try:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            elif os.path.isfile(path):
+                os.remove(path)
+            TEMP_PATHS.remove(path)
+        except Exception as e:
+            logger.warning(f"Failed to cleanup temp resource {path}: {e}")
+
+
+atexit.register(cleanup_temp_resources)
+
+T = TypeVar("T")
+U = TypeVar("U")
+
+
+def batch_process(
+    items: Iterable[T], batch_size: int, func: Callable[[List[T]], List[U]]
+) -> List[U]:
+    """Process items in batches for efficiency."""
+    result = []
+    batch = []
+    for item in items:
+        batch.append(item)
+        if len(batch) == batch_size:
+            result.extend(func(batch))
+            batch = []
+    if batch:
+        result.extend(func(batch))
+    return result
+
+
+def get_window_manager_backend() -> Literal["hyprland", "sway", "i3"]:
+    """Detect the current compositor/window-manager backend from session env vars."""
+
+    desktop_markers = " ".join(
+        filter(
+            None,
+            [
+                os.environ.get("XDG_CURRENT_DESKTOP", ""),
+                os.environ.get("XDG_SESSION_DESKTOP", ""),
+                os.environ.get("DESKTOP_SESSION", ""),
+            ],
+        )
+    ).lower()
+
+    if os.environ.get("SWAYSOCK") or "sway" in desktop_markers:
+        return "sway"
+    if os.environ.get("I3SOCK") or "i3" in desktop_markers:
+        return "i3"
+    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE") or "hyprland" in desktop_markers:
+        return "hyprland"
+
+    # Keep existing behavior as default.
+    return "hyprland"
 
 
 # Function to convert RGB to hex format
@@ -91,7 +146,7 @@ def mix_colors(color1, color2, ratio=0.5) -> tuple[int, int, int]:
 # Function to tint a color by mixing it with white
 def tint_color(color, tint_factor=1) -> tuple[int, int, int]:
     # tint_factor: 0 means original color, 1 means full white
-    return mix_colors(color, _WHITE, tint_factor)
+    return mix_colors(color, WHITE, tint_factor)
 
 
 def delayed_call(
@@ -137,10 +192,10 @@ def _pillow_worker(image_path, callback, color_count, resize):
             most_common = Counter(pixels).most_common(color_count)
             palette = [color for color, _ in most_common]
 
-            GLib.idle_add(callback, palette)
+            idle_add(callback, palette)
     except Exception as e:
         logger.exception(f"Error generating color palette: {e}")
-        GLib.idle_add(callback, None)
+        idle_add(callback, None)
 
 
 # Function to get a simple color palette from an image using threading
@@ -160,7 +215,7 @@ def parse_markup(text: str) -> str:
 
 def read_json_file(file_path: str) -> Optional[dict | list]:
     if not os.path.exists(file_path):
-        logger.exception(f"JSON file {file_path} does not exist.")
+        logger.warning(f"JSON file {file_path} does not exist.")
         return None
 
     with open(file_path, "r") as file:
@@ -175,7 +230,7 @@ def read_toml_file(file_path: str) -> Optional[dict]:
     import pytomlpp as toml
 
     if not os.path.exists(file_path):
-        logger.exception(f"TOML file {file_path} does not exist.")
+        logger.warning(f"TOML file {file_path} does not exist.")
         return None
 
     logger.info(f"[Config] Reading TOML config from {file_path}")
@@ -184,6 +239,19 @@ def read_toml_file(file_path: str) -> Optional[dict]:
             return toml.load(file)
     except Exception as e:
         logger.exception(f"Failed to read TOML file {file_path}: {e}")
+        return None
+
+
+@run_in_thread
+def write_toml_file(path: str, data: dict) -> Optional[dict]:
+    import pytomlpp as toml
+
+    try:
+        with open(path, "w") as f:
+            toml.dump(data, f)
+
+    except Exception as e:
+        logger.exception(f"Failed to write toml: {e}")
         return None
 
 
@@ -232,12 +300,12 @@ def copy_theme(theme: str):
 
 # Function to update the theme configuration
 def update_theme_config(theme_name: str):
-    """Update the theme.json file with the new theme name."""
+    """Update the theme.toml file with the new theme name."""
     try:
-        theme_config_file = get_relative_path("../theme.json")
+        theme_config_file = get_relative_path("../theme.toml")
 
         # Read current theme config
-        config = read_json_file(theme_config_file)
+        config = read_toml_file(theme_config_file)
 
         if config is None:
             return
@@ -247,7 +315,7 @@ def update_theme_config(theme_name: str):
 
         # Write back to file
 
-        write_json_file(config, theme_config_file)
+        write_toml_file(theme_config_file, config)
 
         logger.info(f"{Colors.INFO}[Theme] Updated theme config to {theme_name}")
     except Exception as e:
@@ -275,7 +343,7 @@ def _compile_css():
 
         if output == "":
             logger.info(f"{Colors.INFO}[Theme] CSS recompiled successfully")
-            GLib.idle_add(_apply_css_to_app)
+            idle_add(_apply_css_to_app)
         else:
             logger.exception(f"{Colors.ERROR}[Theme] Failed to compile sass!")
             logger.exception(f"{Colors.ERROR}[Theme] {output}")
@@ -343,7 +411,7 @@ def format_seconds_to_hours_minutes(secs: int) -> str:
 def convert_bytes(
     bytes: int, to: Literal["kb", "mb", "gb", "tb"], format_spec=".1f"
 ) -> str:
-    factor = _BYTES_FACTORS.get(to, 1)
+    factor = BYTES_FACTORS.get(to, 1)
     return f"{format(bytes / (1024**factor), format_spec)}{to.upper()}"
 
 
@@ -429,13 +497,13 @@ def convert_to_percent(
 def is_valid_gjs_color(color: str) -> bool:
     color_lower = color.strip().lower()
 
-    if color_lower in _NAMED_COLORS_SET:
+    if color_lower in NAMED_COLORS:
         return True
 
-    if _HEX_COLOR_RE.match(color):
+    if HEX_COLOR_RE.match(color):
         return True
 
-    return bool(_RGB_RE.match(color_lower) or _RGBA_RE.match(color_lower))
+    return bool(RGB_RE.match(color_lower) or RGBA_RE.match(color_lower))
 
 
 # Function to get the system uptime
@@ -518,8 +586,8 @@ def _get_config_collection(parsed_data: dict, widget_type: str) -> list:
         return parsed_data.get("widget_groups", [])
     if widget_type == "collapsible":
         return parsed_data.get("collapsible_groups", [])
-    if widget_type == "custom_module":
-        return parsed_data.get("widgets", {}).get("custom_module", [])
+    if widget_type == "custom_widget":
+        return parsed_data.get("widgets", {}).get("custom_widget", [])
     return []
 
 
@@ -552,7 +620,7 @@ _COLLECTION_NAMES = {
     "custom_button": "custom button",
     "group": "widget group",
     "collapsible": "collapsible group",
-    "custom_module": "custom module",
+    "custom_widget": "custom widget",
 }
 
 
@@ -566,15 +634,57 @@ def _validate_special_widget(
 
 
 def _validate_regular_widget(
-    widget_spec: str, default_config: dict, section: str
+    widget_spec: str,
+    parsed_data: dict,
+    default_config: dict,
+    section: str,
 ) -> None:
     """Validate regular widget reference."""
+    if _has_named_custom_widget(widget_spec, parsed_data):
+        return
+
     widgets_list = default_config.get("widgets", {})
     if widget_spec not in widgets_list:
         raise ValueError(
             f"Invalid widget '{widget_spec}' in section {section}. "
             "Please check the widget name."
         )
+
+
+def _has_named_custom_widget(widget_spec: str, parsed_data: dict) -> bool:
+    """Check if widget spec points to a named custom widget."""
+    if not widget_spec.startswith("custom/"):
+        return False
+
+    widgets_config = parsed_data.get("widgets", {})
+    if not isinstance(widgets_config, dict):
+        return False
+
+    # Shape 1: widgets["custom/hello-world"]
+    direct = widgets_config.get(widget_spec)
+    if isinstance(direct, dict):
+        return True
+
+    custom_name = widget_spec.split("/", 1)[1] if "/" in widget_spec else widget_spec
+    custom_widget = widgets_config.get("custom_widget", {})
+
+    # Shape 2: widgets.custom_widget["hello-world"]
+    if isinstance(custom_widget, dict):
+        return isinstance(
+            custom_widget.get(custom_name) or custom_widget.get(widget_spec),
+            dict,
+        )
+
+    # Shape 3 (compat): [[widgets.custom_widget]] with optional `name`
+    if isinstance(custom_widget, list):
+        return any(
+            isinstance(item, dict)
+            and isinstance(item.get("name"), str)
+            and item.get("name") in (custom_name, widget_spec)
+            for item in custom_widget
+        )
+
+    return False
 
 
 def validate_widget_reference(
@@ -591,7 +701,7 @@ def validate_widget_reference(
         widget_type, identifier = widget_spec[1:].split(":", 1)
 
         # Unified validation for all special widget types
-        if widget_type in _SPECIAL_WIDGET_TYPES:
+        if widget_type in SPECIAL_WIDGET_TYPES:
             _validate_special_widget(widget_type, identifier, parsed_data, section)
         else:
             raise ValueError(
@@ -599,7 +709,55 @@ def validate_widget_reference(
             )
     else:
         # Regular widget validation
-        _validate_regular_widget(widget_spec, default_config, section)
+        _validate_regular_widget(widget_spec, parsed_data, default_config, section)
+
+
+# Maps (widget_name, config_key) -> frozenset of valid named format keys.
+# A value of None means only positional {} is valid (no named keys).
+_FORMAT_KEY_VALIDATORS: dict[tuple[str, str], frozenset[str] | None] = {
+    ("window_count", "label_format"): frozenset({"count"}),
+    ("weather", "label_format"): frozenset(
+        {"location", "temperature", "condition", "humidity", "wind_speed"}
+    ),
+    ("workspaces", "label_format"): frozenset({"id"}),
+    ("network_usage", "label_format"): frozenset({"upload", "download"}),
+    ("weather", "provider"): frozenset({"open-mateo", "wttr"}),
+}
+
+
+def _get_named_format_keys(fmt: str) -> set[str]:
+    """Return the set of named keys used in a Python format string."""
+    return {
+        field_name
+        for _, field_name, _, _ in string.Formatter().parse(fmt)
+        if field_name is not None and field_name != ""
+    }
+
+
+def validate_format_strings(parsed_data: dict) -> None:
+    """Warn when format strings in widget settings reference unknown keys."""
+    widgets = parsed_data.get("widgets", {})
+    for (widget_name, config_key), valid_keys in _FORMAT_KEY_VALIDATORS.items():
+        widget_cfg = widgets.get(widget_name, {})
+        if not isinstance(widget_cfg, dict):
+            continue
+        fmt = widget_cfg.get(config_key)
+        if not isinstance(fmt, str):
+            continue
+        try:
+            used = _get_named_format_keys(fmt)
+        except (ValueError, KeyError):
+            logger.warning(
+                f"[Config] widgets.{widget_name}.{config_key}: invalid format string"
+            )
+            continue
+        unknown = used - valid_keys
+        if unknown:
+            logger.warning(
+                f"[Config] widgets.{widget_name}.{config_key}: "
+                f"unknown key(s) {sorted(unknown)!r}. "
+                f"Valid keys: {sorted(valid_keys)!r}"
+            )
 
 
 def validate_widgets(parsed_data, default_config):
@@ -615,7 +773,7 @@ def validate_widgets(parsed_data, default_config):
                 )
 
     # Validate widgets inside groups
-    for group_type in _GROUP_TYPES:
+    for group_type in GROUP_TYPES:
         groups = parsed_data.get(group_type, [])
         if isinstance(groups, list):
             for idx, group in enumerate(groups):
@@ -624,6 +782,8 @@ def validate_widgets(parsed_data, default_config):
                         validate_widget_reference(
                             widget, parsed_data, default_config, f"{group_type}[{idx}]"
                         )
+
+    validate_format_strings(parsed_data)
 
 
 # Function to generate a QR code image
@@ -661,7 +821,7 @@ def get_distro_icon() -> str:
     distro_id = GLib.get_os_info("ID")
 
     # Search for the icon in the list
-    return text_icons["distro"].get(distro_id, "")
+    return get_text_icon(f"distro.{distro_id}") or ""
 
 
 # Function to check if an executable exists
@@ -688,7 +848,7 @@ def send_notification(
     notification.set_body(body)
 
     # Set the urgency level if provided
-    if urgency in _URGENCY_LEVELS:
+    if urgency in URGENCY_LEVELS:
         notification.set_urgent(urgency)
 
     # Set the icon if provided
@@ -705,7 +865,7 @@ def send_notification(
     return True
 
 
-# Function to write a JSON file
+@run_in_thread
 def write_json_file(path: str, data: dict):
     try:
         with open(path, "w") as f:
@@ -822,3 +982,15 @@ def set_debug_logger():
 
     for domain in _LOG_DOMAINS:
         GLib.log_set_handler(domain, log_levels, log_handler)
+
+
+def safe_disconnect(signal_source, handler_id: int | None) -> None:
+    """Safely disconnect a signal handler without raising exceptions.
+
+    Args:
+        signal_source: The object (e.g., GObject) with the signal
+        handler_id: The handler ID returned by connect(). Can be None.
+    """
+    if handler_id is not None:
+        with contextlib.suppress(Exception):
+            signal_source.disconnect(handler_id)

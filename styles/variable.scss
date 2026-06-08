@@ -3,7 +3,6 @@
 @forward "settings";
 @use "theme";
 
-
 $quicksettings-width: 370px;
 
 $radius-large: 9999px;
@@ -11,6 +10,12 @@ $radius-large: 9999px;
 $radius: settings.$border-radius;
 
 $border-color: theme.$surface-disabled;
+
 $border: settings.$border-width solid $border-color;
 
-$popover-border-color: color.mix($border-color, transparent, 5%);
+$popover-border-color: color.mix($border-color, transparent, 60%);
+
+// Slider length presets
+$slider-long: 320px;
+$slider-medium: 250px;
+$slider-short: 180px;

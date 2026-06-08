@@ -75,7 +75,7 @@ class WidgetResolver:
     ) -> Optional[Any]:
         """Unified resolution by type - all widgets follow the same pattern."""
         resolvers = {
-            "widget": lambda: self._create_simple_widget(identifier),
+            "widget": lambda: self._create_simple_widget(identifier, context),
             "custom_button": lambda: self._create_indexed_widget(
                 identifier,
                 context,
@@ -97,22 +97,80 @@ class WidgetResolver:
                 ["collapsible_groups"],
                 self._instantiate_collapsible_group,
             ),
-            "custom_module": lambda: self._create_indexed_widget(
+            "custom_widget": lambda: self._create_indexed_widget(
                 identifier,
                 context,
-                "custom_module",
-                ["widgets", "custom_module"],
-                self._instantiate_custom_module,
+                "custom_widget",
+                ["widgets", "custom_widget"],
+                self._instantiate_custom_widget,
             ),
         }
 
         resolver = resolvers.get(widget_type)
         return resolver() if resolver else None
 
-    def _create_simple_widget(self, widget_name: str) -> Optional[Any]:
+    def _create_simple_widget(
+        self, widget_name: str, context: dict[str, Any]
+    ) -> Optional[Any]:
         """Create normal widget - same pattern as custom button."""
+        if widget_name.startswith("custom/"):
+            return self._create_named_custom_widget(widget_name, context)
+
         widget_class = self.widgets_list.get(widget_name)
         return widget_class() if widget_class else None
+
+    def _create_named_custom_widget(
+        self, widget_name: str, context: dict[str, Any]
+    ) -> Optional[Any]:
+        """Create custom widget from named alias like custom/hello-world."""
+        config = context.get("config", {})
+        module_config = self._get_named_custom_widget_config(config, widget_name)
+        if module_config is None:
+            logger.warning(f"Named custom widget '{widget_name}' not found in config")
+            return None
+
+        from widgets.custom_widget import CustomWidget
+
+        safe_name = widget_name.replace("/", "_").replace(" ", "_")
+        return CustomWidget(
+            widget_name=f"custom_widget_{safe_name}",
+            config=module_config,
+        )
+
+    @staticmethod
+    def _get_named_custom_widget_config(
+        config: dict, widget_name: str
+    ) -> Optional[dict]:
+        """Resolve config for custom/<name> from supported config shapes."""
+        widgets_config = config.get("widgets", {})
+        if not isinstance(widgets_config, dict):
+            return None
+
+        # Shape 1: widgets["custom/hello-world"] = {...}
+        direct = widgets_config.get(widget_name)
+        if isinstance(direct, dict):
+            return direct
+
+        custom_name = (
+            widget_name.split("/", 1)[1] if "/" in widget_name else widget_name
+        )
+        custom_widget = widgets_config.get("custom_widget", {})
+
+        # Shape 2: widgets.custom_widget["hello-world"] = {...}
+        if isinstance(custom_widget, dict):
+            named = custom_widget.get(custom_name) or custom_widget.get(widget_name)
+            return named if isinstance(named, dict) else None
+
+        # Shape 3 (compat): [[widgets.custom_widget]] with optional `name`
+        if isinstance(custom_widget, list):
+            for item in custom_widget:
+                if not isinstance(item, dict):
+                    continue
+                name = item.get("name")
+                if isinstance(name, str) and name in (custom_name, widget_name):
+                    return item
+
+        return None
 
     def _create_indexed_widget(
         self,
@@ -166,14 +224,14 @@ class WidgetResolver:
         collapsible_group.set_context(config, self.widgets_list)
         return collapsible_group
 
-    def _instantiate_custom_module(
+    def _instantiate_custom_widget(
         self, module_config: dict, config: dict, index: int
     ) -> Any:
-        """Create CustomModuleWidget instance."""
-        from widgets.custom_module import CustomModuleWidget
+        """Create CustomWidget instance."""
+        from widgets.custom_widget import CustomWidget
 
-        return CustomModuleWidget(
-            widget_name=f"custom_module_{index}",
+        return CustomWidget(
+            widget_name=f"custom_widget_{index}",
             config=module_config,
         )
 

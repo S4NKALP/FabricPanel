@@ -4,7 +4,6 @@
 @use "variable";
 
 #clip-menu {
-
   #search-entry {
     font-weight: bold;
     background-color: theme.$surface-disabled;
@@ -83,13 +82,15 @@
   }
 }
 
-#cliphist {
-  border-radius: variable.$bar-widgets-cliphist-border-radius;
-  border: if(variable.$bar-widgets-cliphist-border-enabled, variable.$border, none);
-  border-width: variable.$bar-widgets-cliphist-border-width;
+#clipboard {
+  @include common.widget_border(
+    variable.$bar-widgets-clipboard-border-radius,
+    variable.$bar-widgets-clipboard-border-enabled,
+    variable.$bar-widgets-clipboard-border-width
+  );
 
-  #nerd-icon.panel-font-icon {
-    font-size: variable.$bar-widgets-cliphist-icon_size;
-    margin-right: variable.$bar-widgets-cliphist-spacing;
-  }
+  @include common.nerd-icon(
+    variable.$bar-widgets-clipboard-icon_size,
+    variable.$bar-widgets-clipboard-spacing
+  );
 }

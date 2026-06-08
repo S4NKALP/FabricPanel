@@ -1,13 +1,12 @@
 import importlib
 
 from fabric import Application
-from fabric.utils import exec_shell_command_async, logger
+from fabric.utils import GLib, exec_shell_command_async, logger
 from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.eventbox import EventBox
 from fabric.widgets.revealer import Revealer
 from fabric.widgets.wayland import WaylandWindow as Window
-from gi.repository import GLib
 
 from utils.constants import ASSETS_DIR
 from utils.widget_settings import BarConfig
@@ -79,10 +78,11 @@ LAZY_WIDGETS_LIST = {
     "brightness": "widgets.brightness.BrightnessWidget",
     "cava": "widgets.cava.CavaWidget",
     "click_counter": "widgets.click_counter.ClickCounterWidget",
-    "cliphist": "widgets.cliphist.ClipHistoryWidget",
+    "breathe": "widgets.breathing.BreatheWidget",
+    "clipboard": "widgets.clipboard.ClipBoardWidget",
     "collapsible_group": "shared.collapsible_group.CollapsibleGroupWidget",
     "cpu": "widgets.stats.CpuWidget",
-    "custom_module": "widgets.custom_module.CustomModuleWidget",
+    "custom_widget": "widgets.custom_widget.CustomWidget",
     "date_time": "widgets.datetime_menu.DateTimeWidget",
     "divider": "widgets.utility_widgets.DividerWidget",
     "emoji_picker": "widgets.emoji_picker.EmojiPickerWidget",
@@ -101,6 +101,7 @@ LAZY_WIDGETS_LIST = {
     "overview_button": "widgets.overview_button.OverviewButtonWidget",
     "power": "widgets.power_button.PowerWidget",
     "quick_settings": "widgets.quick_settings.quick_settings.QuickSettingsButtonWidget",
+    "privacy_indicator": "widgets.privacy.PrivacyIndicatorWidget",
     "recorder": "widgets.recorder.RecorderWidget",
     "screenshot": "widgets.screenshot.ScreenShotWidget",
     "settings": "widgets.settings.SettingsWidget",
@@ -122,7 +123,7 @@ LAZY_WIDGETS_LIST = {
 }
 
 
-class StatusBar(Window):
+class Bar(Window):
     """A widget to display the status bar panel."""
 
     def __init__(self, config: BarConfig, **kwargs):
@@ -214,6 +215,8 @@ class StatusBar(Window):
             **kwargs,
         )
 
+        self.connect("destroy", self._on_destroy)
+
         # Start auto-hide timer if enabled
         if self._auto_hide:
             self._start_hide_timer()
@@ -256,6 +259,10 @@ class StatusBar(Window):
         self._hide_timer_id = None
         return False  # Don't repeat the timeout
 
+    def _on_destroy(self, *_):
+        """Ensure no pending hide timer survives teardown."""
+        self._cancel_hide_timer()
+
     def make_layout(self, config: BarConfig):
         """assigns the three sections their respective widgets"""
         from utils.widget_factory import WidgetResolver
@@ -279,16 +286,14 @@ class StatusBar(Window):
     def create_bars(app: Application, config: BarConfig) -> list:
         multi_monitor = config.get("general", {}).get("multi_monitor", False)
         bars = (
-            StatusBar._create_multi_monitor_bars(config)
-            if multi_monitor
-            else [StatusBar(config)]
+            Bar._create_multi_monitor_bars(config) if multi_monitor else [Bar(config)]
         )
 
         for bar in bars:
             app.add_window(bar)
 
         if multi_monitor:
-            StatusBar._setup_hotplug(app, config, bars)
+            Bar._setup_hotplug(app, config, bars)
 
         return bars
 
@@ -300,15 +305,15 @@ class StatusBar(Window):
         monitor_names = monitor_util.get_monitor_names()
 
         if not monitor_names:
-            return [StatusBar(config)]
+            return [Bar(config)]
 
         bars = []
         for monitor_name in monitor_names:
             monitor_id = monitor_util.get_gdk_monitor_id_from_name(monitor_name)
             if monitor_id is not None:
-                bars.append(StatusBar(config, monitor=monitor_id))
+                bars.append(Bar(config, monitor=monitor_id))
 
-        return bars if bars else [StatusBar(config)]
+        return bars if bars else [Bar(config)]
 
     @staticmethod
     def _setup_hotplug(app: Application, config: BarConfig, bars: list):
@@ -316,7 +321,7 @@ class StatusBar(Window):
 
         watcher = MonitorWatcher()
 
-        watcher.add_callback(lambda: StatusBar._recreate_bars(app, config, bars))
+        watcher.add_callback(lambda: Bar._recreate_bars(app, config, bars))
         watcher.start_watching()
 
     @staticmethod
@@ -331,7 +336,7 @@ class StatusBar(Window):
 
         # Create new
         bars.clear()
-        new_bars = StatusBar._create_multi_monitor_bars(config)
+        new_bars = Bar._create_multi_monitor_bars(config)
         bars.extend(new_bars)
 
         for bar in bars:

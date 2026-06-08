@@ -1,7 +1,6 @@
 import typing
 
-import gi
-from fabric.utils import bulk_connect, logger
+from fabric.utils import Gdk, GLib, GObject, Gtk, bulk_connect, logger
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.centerbox import CenterBox
@@ -9,16 +8,14 @@ from fabric.widgets.eventbox import EventBox
 from fabric.widgets.grid import Grid
 from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
-from gi.repository import Gdk, GLib, GObject, Gtk
 
 from shared.list import ListBox
 from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
 from utils.constants import KANBAN_FILE
 from utils.functions import read_json_file, write_json_file
+from utils.icons import get_text_icon
 from utils.widget_utils import create_surface_from_widget, nerd_font_icon
-
-gi.require_versions({"Gtk": "3.0", "GObject": "2.0", "Gdk": "3.0"})
 
 
 class InlineEditor(Box):
@@ -41,13 +38,15 @@ class InlineEditor(Box):
         self.text_view.connect("key-press-event", self.on_key_press)
 
         confirm_btn = Button(
-            name="kanban-btn", child=Label(name="kanban-btn-label", markup="")
+            name="kanban-btn",
+            child=Label(name="kanban-btn-label", markup=get_text_icon("ui.tick")),
         )
         confirm_btn.connect("clicked", self.on_confirm)
         confirm_btn.get_style_context().add_class("flat")
 
         cancel_btn = Button(
-            name="kanban-btn", child=Label(name="kanban-btn-neg", markup="")
+            name="kanban-btn",
+            child=Label(name="kanban-btn-neg", markup=get_text_icon("ui.window_close")),
         )
         cancel_btn.connect("clicked", self.on_cancel)
         cancel_btn.get_style_context().add_class("flat")
@@ -405,7 +404,7 @@ class KanbanWidget(ButtonWidget, PopoverMixin):
         if self.config.get("label", True):
             self.container_box.add(Label(label="Kanban", style_classes=["panel-text"]))
 
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             self.set_tooltip_text("Kanban Board")
 
         self.setup_popover(Kanban)

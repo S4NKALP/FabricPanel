@@ -1,24 +1,41 @@
 import json
+from time import monotonic
 
-from fabric.utils import exec_shell_command_async
+from fabric.utils import exec_shell_command, exec_shell_command_async, idle_add
 from fabric.widgets.label import Label
 
 import utils.functions as helpers
 from services.networkspeed import NetworkSpeed
 from shared.mixins import StatDisplayMixin
 from shared.widget_container import ButtonWidget
-from utils.icons import text_icons
+from utils.icons import get_text_icon
 from utils.widget_utils import (
-    nerd_font_icon,
-    util_fabricator,
+    connect_util_fabricator_changed,
+    disconnect_util_fabricator_changed,
 )
 
 
-class CpuWidget(ButtonWidget, StatDisplayMixin):
-    """A widget to display the current CPU usage."""
+class FabricatorBoundWidget(ButtonWidget):
+    """Button widget with safe util_fabricator signal lifecycle."""
 
-    _stat_icon = "󰕸"
-    _stat_name = "cpu"
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._util_changed_handler_id = None
+        self.connect("destroy", self._disconnect_fabricator)
+
+    def _bind_fabricator_changed(self, callback):
+        self._util_changed_handler_id = connect_util_fabricator_changed(callback)
+
+    def _disconnect_fabricator(self, *_):
+        if self._util_changed_handler_id is None:
+            return
+
+        disconnect_util_fabricator_changed(self._util_changed_handler_id)
+        self._util_changed_handler_id = None
+
+
+class CpuWidget(FabricatorBoundWidget, StatDisplayMixin):
+    """A widget to display the current CPU usage."""
 
     def __init__(
         self,
@@ -39,7 +56,7 @@ class CpuWidget(ButtonWidget, StatDisplayMixin):
         self.setup_stat_display(self.container_box)
 
         # Set up a fabricator to call the update_label method when the CPU usage changes
-        util_fabricator.connect("changed", self._update_ui)
+        self._bind_fabricator_changed(self._update_ui)
 
     def set_cpu_name(self, cpu_name: str):
         self.cpu_name = cpu_name.strip()
@@ -53,7 +70,7 @@ class CpuWidget(ButtonWidget, StatDisplayMixin):
         self.update_stat_display(usage, f"{usage}%")
 
         # Update the tooltip with the memory usage details if enabled
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             temp = value.get("temperature")
 
             temp = temp.get(self.config.get("sensor", ""))
@@ -81,9 +98,9 @@ class CpuWidget(ButtonWidget, StatDisplayMixin):
 
             tooltip_text = (
                 f"{self.cpu_name}\n"
-                f" Temperature: {temp}\n"
-                f"󰾆 Utilization: {usage}\n"
-                f" Clock Speed: {freq_text}"
+                f"{get_text_icon('thermometer')} Temperature: {temp}\n"
+                f"{get_text_icon('powerprofiles.performance')} Utilization: {usage}\n"
+                f"{get_text_icon('cpu')} Clock Speed: {freq_text}"
             )
 
             self.set_tooltip_text(tooltip_text)
@@ -91,11 +108,8 @@ class CpuWidget(ButtonWidget, StatDisplayMixin):
         return True
 
 
-class GpuWidget(ButtonWidget, StatDisplayMixin):
+class GpuWidget(FabricatorBoundWidget, StatDisplayMixin):
     """A widget to display the current GPU usage."""
-
-    _stat_icon = "󰕸"
-    _stat_name = "gpu"
 
     def __init__(
         self,
@@ -111,27 +125,39 @@ class GpuWidget(ButtonWidget, StatDisplayMixin):
         self.setup_stat_display(self.container_box)
 
         # Set up a fabricator to call the update_label method when the CPU usage changes
-        util_fabricator.connect("changed", self._update_ui)
+        self._bind_fabricator_changed(self._update_ui)
 
         # Cache for GPU stats to avoid blocking main thread
         self._gpu_stats = None
+        self._gpu_request_in_flight = False
+        self._last_gpu_poll = 0.0
+        self._gpu_poll_interval = float(self.config.get("poll_interval", 2.5))
 
     def _update_ui(self, *_):
-        # Fetch GPU stats asynchronously to avoid blocking
-        exec_shell_command_async(
-            "nvtop -s",
-            self._on_gpu_stats_received,
-        )
+        if self._gpu_request_in_flight:
+            return True
+
+        now = monotonic()
+        if (now - self._last_gpu_poll) < self._gpu_poll_interval:
+            return True
+
+        self._gpu_request_in_flight = True
+        self._last_gpu_poll = now
+        out = exec_shell_command("nvtop -s")
+
+        try:
+            data = json.loads(out)
+            self._on_gpu_stats_received(json.dumps(data[0]))
+
+        except Exception as e:
+            print(f"Error parsing JSON: {e}")
+
         return True
 
     def _on_gpu_stats_received(self, value: str):
         """Handle GPU stats received from async command."""
-        try:
-            stats = json.loads(value.strip("\n"))
-            if type(stats) is list:
-                stats = stats[0]
-        except (json.JSONDecodeError, Exception):
-            return
+
+        stats = json.loads(value)
 
         frequency = stats.get("gpu_clock", "0 MHz")
         usage_str = stats.get("mem_util", "0").strip("%")
@@ -145,7 +171,7 @@ class GpuWidget(ButtonWidget, StatDisplayMixin):
         self.update_stat_display(usage, f"{usage_str}%")
 
         # Update the tooltip with the memory usage details if enabled
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             temp = stats.get("temp")
 
             if temp is None:
@@ -163,11 +189,8 @@ class GpuWidget(ButtonWidget, StatDisplayMixin):
         return True
 
 
-class MemoryWidget(ButtonWidget, StatDisplayMixin):
+class MemoryWidget(FabricatorBoundWidget, StatDisplayMixin):
     """A widget to display the current memory usage."""
-
-    _stat_icon = "󰕸"
-    _stat_name = "memory"
 
     def __init__(
         self,
@@ -183,7 +206,7 @@ class MemoryWidget(ButtonWidget, StatDisplayMixin):
         self.setup_stat_display(self.container_box)
 
         # Set up a fabricator to call the update_label method  at specified intervals
-        util_fabricator.connect("changed", self._update_ui)
+        self._bind_fabricator_changed(self._update_ui)
 
     def _update_ui(self, _, value: dict):
         # Get the current memory usage
@@ -196,9 +219,9 @@ class MemoryWidget(ButtonWidget, StatDisplayMixin):
         self.update_stat_display(self.percent_used, f"{self.get_used()}")
 
         # Update the tooltip with the memory usage details if enabled
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             self.set_tooltip_text(
-                f"󰾆 {self.percent_used}%\n{text_icons['memory']} {self.ratio()}",
+                f"󰾆 {self.percent_used}%\n{get_text_icon('memory')} {self.ratio()}",
             )
 
         return True
@@ -213,11 +236,8 @@ class MemoryWidget(ButtonWidget, StatDisplayMixin):
         return f"{self.get_used()}/{self.get_total()}"
 
 
-class StorageWidget(ButtonWidget, StatDisplayMixin):
+class StorageWidget(FabricatorBoundWidget, StatDisplayMixin):
     """A widget to display the current storage usage."""
-
-    _stat_icon = "󰕸"
-    _stat_name = "storage"
 
     def __init__(
         self,
@@ -233,7 +253,7 @@ class StorageWidget(ButtonWidget, StatDisplayMixin):
         self.setup_stat_display(self.container_box)
 
         # Set up a fabricator to call the update_label method at specified intervals
-        util_fabricator.connect("changed", self._update_ui)
+        self._bind_fabricator_changed(self._update_ui)
 
     def _update_ui(self, _, value: dict):
         # Get the current disk usage
@@ -244,9 +264,9 @@ class StorageWidget(ButtonWidget, StatDisplayMixin):
         self.update_stat_display(percent, f"{self.get_used()}")
 
         # Update the tooltip with the storage usage details if enabled
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             self.set_tooltip_text(
-                f"󰾆 {percent}%\n{text_icons['storage']} {self.ratio()}"
+                f"󰾆 {percent}%\n{get_text_icon('storage')} {self.ratio()}"
             )
 
         return True
@@ -261,7 +281,7 @@ class StorageWidget(ButtonWidget, StatDisplayMixin):
         return f"{self.get_used()}/{self.get_total()}"
 
 
-class NetworkUsageWidget(ButtonWidget):
+class NetworkUsageWidget(FabricatorBoundWidget):
     """A widget to display the current network usage."""
 
     def __init__(
@@ -273,9 +293,9 @@ class NetworkUsageWidget(ButtonWidget):
             **kwargs,
         )
 
-        show_download = self.config.get("download", True)
-        show_upload = self.config.get("upload", False)
-        # Thresholds (in bytes/ms)
+        self.label_format: str = self.config.get("label_format", "")
+
+        # Thresholds (in bytes/s)
         self.download_threshold = self.config.get("download_threshold", 0)
         self.upload_threshold = self.config.get("upload_threshold", 0)
 
@@ -283,46 +303,23 @@ class NetworkUsageWidget(ButtonWidget):
         self.kb_digits = self.config.get("kb_digits", 0)
         self.mb_digits = self.config.get("mb_digits", 2)
 
-        self.upload_icon = nerd_font_icon(
-            icon=self.config.get("upload_icon", "󰕸"),
-            props={"style_classes": ["panel-font-icon"], "visible": show_upload},
+        self.network_label = Label(
+            name="network_label", label="0 MB", style_classes=["panel-text"]
         )
 
-        self.upload_label = Label(
-            name="upload_label",
-            label="0 MB",
-            style_classes=["panel-text"],
-            visible=show_upload,
-            style="margin-right: 10px;",
-        )
-
-        self.download_icon = nerd_font_icon(
-            icon=self.config.get("download_icon", "󰕸"),
-            props={"style_classes": ["panel-font-icon"], "visible": show_download},
-        )
-
-        self.download_label = Label(
-            name="download_label",
-            label="0 MB",
-            style_classes=["panel-text"],
-            visible=show_download,
-        )
-
-        self.container_box.children = (
-            self.upload_icon,
-            self.upload_label,
-            self.download_icon,
-            self.download_label,
-        )
+        self.container_box.children = [self.network_label]
 
         self.client = NetworkSpeed()
 
-        # Set up a fabricator to call the update_label method at specified intervals
-        util_fabricator.connect("changed", self._update_ui)
+        # Cache and interval for network stats (interval in milliseconds)
+        self._last_network_poll = 0.0
+        self._network_poll_interval = float(self.config.get("interval", 2000)) / 1000.0
 
-    def format_speed(self, speed: int):
-        # speed is in bytes/ms, so *1000 = bytes/s
-        speed_bps = speed * 1000
+        # Set up a fabricator to call the update_label method at specified intervals
+        self._bind_fabricator_changed(self._update_ui)
+
+    def format_speed(self, speed: float):
+        speed_bps = max(float(speed), 0.0)
         if speed_bps < 1024:
             return f"{speed_bps:.0f} B/s"
         elif speed_bps < 1024 * 1024:
@@ -333,22 +330,31 @@ class NetworkUsageWidget(ButtonWidget):
     def _update_ui(self, *_):
         """Update the network usage label with the current network usage."""
 
+        now = monotonic()
+        if (now - self._last_network_poll) < self._network_poll_interval:
+            return True
+
+        self._last_network_poll = now
+
         network_speed = self.client.get_network_speed()
 
         download_speed = network_speed.get("download", 0)
         upload_speed = network_speed.get("upload", 0)
 
-        if upload_speed >= self.upload_threshold:
-            self.upload_label.set_label(self.format_speed(upload_speed))
-        else:
-            self.upload_label.set_label("")
+        upload_display = upload_speed if upload_speed >= self.upload_threshold else 0
 
-        if download_speed >= self.download_threshold:
-            self.download_label.set_label(self.format_speed(download_speed))
-        else:
-            self.download_label.set_label("")
+        download_display = (
+            download_speed if download_speed >= self.download_threshold else 0
+        )
 
-        if self.config.get("tooltip", False):
+        label_text = self.label_format.format(
+            upload=self.format_speed(upload_display),
+            download=self.format_speed(download_display),
+        )
+
+        idle_add(self.network_label.set_label, label_text)
+
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             tooltip_text = (
                 f"Download: {self.format_speed(download_speed)}\n"
                 f"Upload: {self.format_speed(upload_speed)}"

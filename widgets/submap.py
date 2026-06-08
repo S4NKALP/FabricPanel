@@ -19,7 +19,7 @@ class SubMapWidget(ButtonWidget):
         if self.config.get("show_icon", True):
             # Create a TextIcon with the specified icon and size
             self.icon = nerd_font_icon(
-                icon=self.config.get("icon", "󰕸"),
+                icon=self.config.get("icon"),
                 props={"style_classes": ["panel-font-icon"]},
             )
             self.container_box.add(self.icon)
@@ -49,7 +49,7 @@ class SubMapWidget(ButtonWidget):
             if self.config.get("hide_on_default", False) and submap == "default":
                 self.hide()
 
-            if self.config.get("tooltip", False):
+            if self.config.get("tooltip", False) and self.tooltips_enabled:
                 self.set_tooltip_text(
                     f"Current submap: {submap}",
                 )
@@ -58,6 +58,7 @@ class SubMapWidget(ButtonWidget):
 
     def _get_submap(self, *_):
         try:
+            # TODO use the data from the event
             self._hyprland_connection.send_command_async(
                 "submap",
                 lambda res, *_: self._handle_reply(res.reply.decode().strip("\n")),

@@ -1,11 +1,16 @@
-import os
 import subprocess
 import tempfile
 from datetime import datetime
 
 from fabric.core.service import Property, Signal
-from fabric.utils import exec_shell_command, exec_shell_command_async, logger
-from gi.repository import Gio, GLib
+from fabric.utils import (
+    Gio,
+    GLib,
+    exec_shell_command,
+    exec_shell_command_async,
+    logger,
+    os,
+)
 
 import utils.functions as helpers
 from utils.constants import APPLICATION_NAME, ASSETS_DIR

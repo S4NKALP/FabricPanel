@@ -55,6 +55,7 @@ class PowerMenuPopup(PopupWindow):
             enable_inhibitor=True,
             keyboard_mode="exclusive",
             name="power-menu-overlay",
+            layer="top",
             **kwargs,
         )
 
@@ -148,7 +149,7 @@ class PowerWidget(ButtonWidget):
         if self.config.get("show_icon", True):
             # Create a TextIcon with the specified icon and size
             self.icon = nerd_font_icon(
-                icon=self.config.get("icon", "󰕸"),
+                icon=self.config.get("icon"),
                 props={"style_classes": ["panel-font-icon"]},
             )
             self.container_box.add(self.icon)
@@ -156,7 +157,7 @@ class PowerWidget(ButtonWidget):
         if self.config.get("label", True):
             self.container_box.add(Label(label="power", style_classes=["panel-text"]))
 
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             self.set_tooltip_text("Power")
 
         self.connect(

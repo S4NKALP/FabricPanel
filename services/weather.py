@@ -1,18 +1,76 @@
 import json
-import os
-import time
 from contextlib import suppress
 from typing import Callable, Optional
 
-import requests
-from fabric.utils import logger
-from gi.repository import GLib
+import httpx
+from fabric.utils import idle_add, logger, os, time
 
 from utils.constants import WEATHER_CACHE_FILE
+from utils.decorators import thread
 from utils.functions import write_json_file
-from utils.thread import thread
 
 from .base import SingletonService
+
+_WEATHER_CODE_MAP = {
+    0: 113,
+    1: 116,
+    2: 119,
+    3: 122,
+    45: 143,
+    48: 143,
+    51: 176,
+    53: 176,
+    55: 176,
+    56: 182,
+    57: 182,
+    61: 293,
+    63: 302,
+    65: 308,
+    66: 281,
+    67: 284,
+    71: 338,
+    73: 371,
+    75: 395,
+    77: 371,
+    80: 353,
+    81: 356,
+    82: 359,
+    85: 368,
+    86: 395,
+    95: 389,
+    96: 392,
+    99: 395,
+}
+_WEATHER_DESCRIPTIONS = {
+    0: "Clear sky",
+    1: "Mainly clear",
+    2: "Partly cloudy",
+    3: "Overcast",
+    45: "Fog",
+    48: "Depositing rime fog",
+    51: "Light drizzle",
+    53: "Moderate drizzle",
+    55: "Dense drizzle",
+    56: "Light freezing drizzle",
+    57: "Dense freezing drizzle",
+    61: "Slight rain",
+    63: "Moderate rain",
+    65: "Heavy rain",
+    66: "Light freezing rain",
+    67: "Heavy freezing rain",
+    71: "Slight snow fall",
+    73: "Moderate snow fall",
+    75: "Heavy snow fall",
+    77: "Snow grains",
+    80: "Slight rain showers",
+    81: "Moderate rain showers",
+    82: "Violent rain showers",
+    85: "Slight snow showers",
+    86: "Heavy snow showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm with slight hail",
+    99: "Thunderstorm with heavy hail",
+}
 
 
 class WeatherService(SingletonService):
@@ -32,11 +90,10 @@ class WeatherService(SingletonService):
         self.provider = provider.lower()
         self.wttr_url_template = wttr_url_template
 
-    def _make_session(self) -> requests.Session:
+    def _make_session(self) -> httpx.Client:
         """Create a throwaway session to avoid holding state in memory."""
-        session = requests.Session()
-        session.headers.update(
-            {
+        session = httpx.Client(
+            headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                     "(KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
@@ -49,57 +106,22 @@ class WeatherService(SingletonService):
         """Convert location name to latitude and longitude using Nominatim."""
         session = self._make_session()
         params = {"name": location, "count": 10, "language": "en", "format": "json"}
-
         try:
-            response = session.get(self.geocode_url, params=params, timeout=10)
+            response = session.get(self.geocode_url, params=params, timeout=10.0)
             response.raise_for_status()
             data = response.json()
-
             data = data.get("results", [])
-
             if data:
                 lat = float(data[0]["latitude"])
                 lon = float(data[0]["longitude"])
                 return lat, lon
         except Exception as e:
             logger.exception("Error geocoding location", e)
-
         return None
 
     def _map_weather_code(self, code: int) -> int:
         """Map Open-Meteo weather codes to wttr.in compatible codes."""
-        # Open-Meteo weather codes to wttr.in mapping
-        mapping = {
-            0: 113,  # Clear sky
-            1: 116,  # Mainly clear -> Partly cloudy
-            2: 119,  # Partly cloudy
-            3: 122,  # Overcast
-            45: 143,  # Fog
-            48: 143,  # Depositing rime fog
-            51: 176,  # Light drizzle
-            53: 176,  # Moderate drizzle
-            55: 176,  # Dense drizzle
-            56: 182,  # Light freezing drizzle
-            57: 182,  # Dense freezing drizzle
-            61: 293,  # Slight rain
-            63: 302,  # Moderate rain
-            65: 308,  # Heavy rain
-            66: 281,  # Light freezing rain
-            67: 284,  # Heavy freezing rain
-            71: 338,  # Slight snow fall
-            73: 371,  # Moderate snow fall
-            75: 395,  # Heavy snow fall
-            77: 371,  # Snow grains
-            80: 353,  # Slight rain showers
-            81: 356,  # Moderate rain showers
-            82: 359,  # Violent rain showers
-            85: 368,  # Slight snow showers
-            86: 395,  # Heavy snow showers
-            95: 389,  # Thunderstorm
-            96: 392,  # Thunderstorm with slight hail
-            99: 395,  # Thunderstorm with heavy hail
-        }
-        return mapping.get(code, 113)  # Default to clear sky
+        return _WEATHER_CODE_MAP.get(code, 113)
 
     def _convert_to_12hr_format(self, time_24hr: str) -> str:
         """Convert 24-hour time format (HH:MM) to 12-hour format (HH:MM AM/PM)."""
@@ -121,49 +143,21 @@ class WeatherService(SingletonService):
 
     def _get_weather_description(self, code: int) -> str:
         """Get weather description from Open-Meteo weather code."""
-        descriptions = {
-            0: "Clear sky",
-            1: "Mainly clear",
-            2: "Partly cloudy",
-            3: "Overcast",
-            45: "Fog",
-            48: "Depositing rime fog",
-            51: "Light drizzle",
-            53: "Moderate drizzle",
-            55: "Dense drizzle",
-            56: "Light freezing drizzle",
-            57: "Dense freezing drizzle",
-            61: "Slight rain",
-            63: "Moderate rain",
-            65: "Heavy rain",
-            66: "Light freezing rain",
-            67: "Heavy freezing rain",
-            71: "Slight snow fall",
-            73: "Moderate snow fall",
-            75: "Heavy snow fall",
-            77: "Snow grains",
-            80: "Slight rain showers",
-            81: "Moderate rain showers",
-            82: "Violent rain showers",
-            85: "Slight snow showers",
-            86: "Heavy snow showers",
-            95: "Thunderstorm",
-            96: "Thunderstorm with slight hail",
-            99: "Thunderstorm with heavy hail",
-        }
-        return descriptions.get(code, "Clear sky")
+        return _WEATHER_DESCRIPTIONS.get(code, "Clear sky")
 
     def simple_weather_info(
         self, location: str, retries: int = 3, delay: float = 2.0
     ) -> Optional[dict]:
-        """Fetch weather data from the configured API provider."""
-        if self.provider == "wttr":
-            return self._fetch_wttr_weather(location, retries, delay)
-        elif self.provider == "open-meteo":
-            return self._fetch_openmeteo_weather(location, retries, delay)
-        else:
-            # Default to open-meteo
-            return self._fetch_openmeteo_weather(location, retries, delay)
+
+        try:
+            """Fetch weather data from the configured API provider."""
+            if self.provider == "wttr":
+                return self._fetch_wttr_weather(location, retries, delay)
+            else:  # open meteo is the default
+                return self._fetch_openmeteo_weather(location, retries, delay)
+
+        except Exception:
+            logger.error("Failed to fetch weather")
 
     def _fetch_wttr_weather(
         self, location: str, retries: int = 3, delay: float = 2.0
@@ -171,12 +165,12 @@ class WeatherService(SingletonService):
         """Fetch weather data from wttr.in API."""
         session = self._make_session()
         url = self.wttr_url_template.format(
-            location=requests.utils.quote(location.title())
+            location=httpx.utils.quote(location.title())
         )
 
         for attempt in range(retries):
             try:
-                response = session.get(url, timeout=10)
+                response = session.get(url, timeout=10.0)
                 response.raise_for_status()
                 data = response.json()
 
@@ -223,7 +217,7 @@ class WeatherService(SingletonService):
 
         for attempt in range(retries):
             try:
-                response = session.get(self.api_url, params=params, timeout=10)
+                response = session.get(self.api_url, params=params, timeout=10.0)
                 response.raise_for_status()
                 data = response.json()
 
@@ -365,7 +359,7 @@ class WeatherService(SingletonService):
         callback: Callable[[Optional[dict]], None],
     ):
         result = self.get_weather(location, ttl=ttl, refresh=refresh)
-        GLib.idle_add(callback, result)
+        idle_add(callback, result)
 
     def get_weather_async(
         self,

@@ -1,5 +1,6 @@
-from fabric.hyprland.widgets import HyprlandLanguage as Language
+from fabric.hyprland.widgets import HyprlandLanguage
 from fabric.utils import FormattedString, truncate
+from fabric.widgets.label import Label
 
 from shared.widget_container import ButtonWidget
 from utils.widget_utils import nerd_font_icon
@@ -11,19 +12,27 @@ class LanguageWidget(ButtonWidget):
     def __init__(self, **kwargs):
         super().__init__(name="language", **kwargs)
 
-        self.lang = Language(
-            formatter=FormattedString(
-                "{truncate(language,length,suffix)}",
-                truncate=truncate,
-                length=self.config.get("truncation_size", 10),
-                suffix="",
-            ),
-            style_classes=["panel-text"],
-        )
+        language_widget = HyprlandLanguage
+
+        if language_widget is None:
+            self.lang = Label(
+                label=self.config.get("fallback_label", "N/A"),
+                style_classes=["panel-text"],
+            )
+        else:
+            self.lang = language_widget(
+                formatter=FormattedString(
+                    "{truncate(language,length,suffix)}",
+                    truncate=truncate,
+                    length=self.config.get("truncation_size", 10),
+                    suffix="",
+                ),
+                style_classes=["panel-text"],
+            )
 
         if self.config.get("show_icon", True):
             self.icon = nerd_font_icon(
-                icon=self.config.get("icon", "󰕸"),
+                icon=self.config.get("icon"),
                 props={
                     "style_classes": ["panel-font-icon"],
                 },
@@ -32,5 +41,5 @@ class LanguageWidget(ButtonWidget):
 
         self.container_box.add(self.lang)
 
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             self.set_tooltip_text(f"Language: {self.lang.get_label()}")

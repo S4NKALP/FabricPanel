@@ -1,17 +1,12 @@
-import os
 import subprocess
 
-import gi
-from fabric.utils import exec_shell_command_async
+from fabric.utils import Gdk, Gtk, exec_shell_command_async, os
 from fabric.widgets.label import Label
-from gi.repository import Gdk, Gtk
 
 from shared.widget_container import ButtonWidget
 from utils.constants import ASSETS_DIR
 from utils.functions import ttl_lru_cache
 from utils.widget_utils import nerd_font_icon
-
-gi.require_versions({"Gtk": "3.0", "Gdk": "3.0"})
 
 
 class OCRWidget(ButtonWidget):
@@ -30,7 +25,7 @@ class OCRWidget(ButtonWidget):
         if self.config.get("show_icon", True):
             # Create a TextIcon with the specified icon and size
             self.icon = nerd_font_icon(
-                icon=self.config.get("icon", "󰕸"),
+                icon=self.config.get("icon"),
                 props={"style_classes": ["panel-font-icon"]},
             )
             self.container_box.add(self.icon)
@@ -41,7 +36,7 @@ class OCRWidget(ButtonWidget):
         # Left click for OCR
         self.connect("button-press-event", self.on_button_press)
 
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             self.set_tooltip_text("Left click to OCR, right click to select language")
 
     def lazy_init(self):

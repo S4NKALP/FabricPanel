@@ -1,17 +1,16 @@
 import gi
-from fabric.utils import logger
+from fabric.utils import GObject, Gtk, bulk_connect, logger
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
-from gi.repository import GObject, Gtk
 
 from services.network import NetworkService, Wifi
 from shared.buttons import QSChevronButton, ScanButton
 from shared.list import ListBox
 from shared.submenu import QuickSubMenu
 from utils.exceptions import NetworkManagerNotFoundError
-from utils.icons import text_icons
+from utils.icons import get_text_icon, network_icon_to_text_icons
 from utils.widget_utils import nerd_font_icon
 
 try:
@@ -19,18 +18,6 @@ try:
     from gi.repository import NM
 except ValueError:
     raise NetworkManagerNotFoundError()
-
-
-gi.require_versions({"Gtk": "3.0", "GObject": "2.0"})
-
-
-icon_to_text_icons = {
-    "network-wireless-signal-excellent-symbolic": text_icons["wifi"]["strength_4"],
-    "network-wireless-signal-good-symbolic": text_icons["wifi"]["strength_3"],
-    "network-wireless-signal-ok-symbolic": text_icons["wifi"]["strength_2"],
-    "network-wireless-signal-weak-symbolic": text_icons["wifi"]["strength_1"],
-    "network-wireless-signal-none-symbolic": text_icons["wifi"]["strength_0"],
-}
 
 
 class WifiSubMenu(QuickSubMenu):
@@ -62,7 +49,7 @@ class WifiSubMenu(QuickSubMenu):
 
         super().__init__(
             title="Network",
-            title_icon=text_icons["wifi"]["generic"],
+            title_icon=get_text_icon("wifi.generic"),
             scan_button=self.scan_button,
             child=self.child,
             **kwargs,
@@ -130,8 +117,13 @@ class WifiSubMenu(QuickSubMenu):
     def on_device_ready(self, client: NetworkService):
         self.wifi_device = client.wifi_device
         if self.wifi_device:
-            self.wifi_device.connect("scanning", self.on_scan)
-            self.wifi_device.connect("changed", lambda *_: self.refresh_wifi_list())
+            bulk_connect(
+                self.wifi_device,
+                {
+                    "scanning": self.on_scan,
+                    "changed": lambda *_: self.refresh_wifi_list(),
+                },
+            )
 
     def build_wifi_options(self):
         self.refresh_wifi_list()
@@ -149,9 +141,9 @@ class WifiSubMenu(QuickSubMenu):
         )
         ap_container.add(
             nerd_font_icon(
-                icon=icon_to_text_icons.get(
+                icon=network_icon_to_text_icons.get(
                     icon_name,
-                    text_icons["wifi"]["generic"],
+                    get_text_icon("wifi.generic"),
                 ),
                 props={
                     "style_classes": ["panel-font-icon"],
@@ -190,9 +182,9 @@ class WifiSubMenu(QuickSubMenu):
         wifi_item = Gtk.ListBoxRow(visible=True)
 
         if is_active:
-            security_label = " " + security_label
+            security_label = f"{get_text_icon('tick')} " + security_label
             if self.wifi_device.get_ap_security(ap.get("active-ap")) != "unsecured":
-                security_label = security_label + ""
+                security_label = security_label + f" {get_text_icon('lock')}"
 
         ap_container.add(
             Label(
@@ -223,7 +215,7 @@ class WifiToggle(QSChevronButton):
 
     def __init__(self, submenu: QuickSubMenu, **kwargs):
         super().__init__(
-            action_icon=text_icons["wifi"]["generic"],
+            action_icon=get_text_icon("wifi.generic"),
             action_label=" Wifi Disabled",
             submenu=submenu,
             **kwargs,
@@ -237,16 +229,20 @@ class WifiToggle(QSChevronButton):
         wifi = client.wifi_device
 
         if wifi:
-            wifi.connect(
-                "notify::enabled",
-                lambda *_: self.set_active_style(wifi.get_property("enabled")),  # type: ignore
+            bulk_connect(
+                wifi,
+                {
+                    "notify::enabled": lambda *_: self.set_active_style(
+                        wifi.get_property("enabled")
+                    ),
+                    "changed": self.update_status,
+                },
             )
-            wifi.connect("changed", self.update_status)
 
             self.action_icon.set_label(
-                icon_to_text_icons.get(
+                network_icon_to_text_icons.get(
                     wifi.get_property("icon-name"),
-                    text_icons["wifi"]["generic"],
+                    get_text_icon("wifi.generic"),
                 ),
             )
 
@@ -255,9 +251,9 @@ class WifiToggle(QSChevronButton):
                 self.action_icon,
                 "label",
                 GObject.BindingFlags.DEFAULT,
-                lambda _, x: icon_to_text_icons.get(
+                lambda _, x: network_icon_to_text_icons.get(
                     x,
-                    text_icons["wifi"]["generic"],
+                    get_text_icon("wifi.generic"),
                 ),
             )
 
@@ -275,8 +271,8 @@ class WifiToggle(QSChevronButton):
 
     def update_status(self, wifi: Wifi):
         self.action_icon.set_label(
-            icon_to_text_icons.get(
+            network_icon_to_text_icons.get(
                 wifi.get_property("icon-name"),
-                text_icons["wifi"]["generic"],
+                get_text_icon("wifi.generic"),
             ),
         )

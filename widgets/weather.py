@@ -1,25 +1,23 @@
-import time
 from datetime import datetime
 
-import gi
-from fabric.utils import cooldown, invoke_repeater, logger
+from fabric.utils import Gtk, cooldown, invoke_repeater, logger, time
 from fabric.widgets.box import Box
 from fabric.widgets.grid import Grid
 from fabric.widgets.label import Label
 from fabric.widgets.revealer import Revealer
 from fabric.widgets.svg import Svg
-from gi.repository import Gtk
 
 from services.weather import WeatherService
+from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
 from utils.constants import ASSETS_DIR
 from utils.functions import check_if_day
-from utils.icons import weather_icons
+from utils.weather_icons import WEATHER_ICONS
 from utils.widget_utils import (
     nerd_font_icon,
 )
 
-gi.require_versions({"Gtk": "3.0"})
+weather_service = WeatherService()
 
 
 class BaseWeatherWidget:
@@ -239,7 +237,6 @@ class WeatherMenu(Box, BaseWeatherWidget):
 
         self.children = (self.title_box, expander)
 
-        weather_service = WeatherService()
         weather_service.set_provider(self.config.get("provider", "open-meteo"))
         weather_service.get_weather_async(
             location=self.config.get("location", ""),
@@ -325,10 +322,10 @@ class WeatherMenu(Box, BaseWeatherWidget):
             sunset_time=self.sunset_time,
         )
         image_name = "image" if is_day else "image-night"
-        return f"{self.weather_icons_dir}/{weather_icons[str(code)][image_name]}.svg"
+        return f"{self.weather_icons_dir}/{WEATHER_ICONS[str(code)][image_name]}.svg"
 
 
-class WeatherWidget(ButtonWidget, BaseWeatherWidget):
+class WeatherWidget(ButtonWidget, BaseWeatherWidget, PopoverMixin):
     """A widget to display the current weather."""
 
     def __init__(
@@ -344,14 +341,18 @@ class WeatherWidget(ButtonWidget, BaseWeatherWidget):
         self.weather_icon = nerd_font_icon(
             icon="󱣶",
             props={
-                "style_classes": ["panel-font-icon"],
+                "style_classes": ["panel-font-icon", "weather-icon"],
             },
         )
         self.container_box.add(self.weather_icon)
 
-        self.popup = None
-
         self.connect("button-press-event", self.on_button_press)
+
+        self.setup_popover(
+            lambda: WeatherMenu(config=self.config),
+            connect_clicked=False,
+            on_close_callback=lambda *_: self.remove_style_class("active"),
+        )
 
         self.update_time = datetime.now()
 
@@ -381,14 +382,14 @@ class WeatherWidget(ButtonWidget, BaseWeatherWidget):
         if data is None:
             self.weather_label.set_label("")
             self.weather_icon.set_label("")
-            if self.config.get("tooltip", False):
+            if self.config.get("tooltip", False) and self.tooltips_enabled:
                 self.set_tooltip_text("Error fetching weather data, try again later.")
             return
 
         # Get the current weather
         self.update_app_data(data)
 
-        weather_icon = weather_icons[self.current_weather["weatherCode"]]
+        weather_icon = WEATHER_ICONS[self.current_weather["weatherCode"]]
 
         text_icon = (
             weather_icon["icon"]
@@ -398,49 +399,36 @@ class WeatherWidget(ButtonWidget, BaseWeatherWidget):
             else weather_icon["icon-night"]
         )
 
-        self.weather_icon.set_label(text_icon)
+        self.weather_icon.set_markup(
+            f'<span foreground="{weather_icon["color"]}">{text_icon}</span>'
+        )
 
         if self.config.get("label", True):
-            self.weather_label.set_label(
-                self.config.get("label_format", "{location}").format(
-                    location=self.data["location"],
-                    temperature=self.get_temperature(),
-                    condition=self.get_description(),
-                    humidity=self.get_humidity(),
-                    wind_speed=self.get_wind_speed(),
-                )
+            label_text = self.config.get("label_format", "{location}").format(
+                location=self.data["location"],
+                temperature=self.get_temperature(),
+                condition=self.get_description(),
+                humidity=self.get_humidity(),
+                wind_speed=self.get_wind_speed(),
+            )
+
+            self.weather_label.set_markup(
+                f'<span foreground="{weather_icon["color"]}">{label_text}</span>'
             )
 
         # Update the tooltip with the city and weather condition if enabled
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             tool_tip = f"{self.get_temperature()} {self.get_description()}"
             tool_tip += f"\n\n{weather_icon['quote']}"
 
             self.set_tooltip_text(tool_tip)
-
-        # Create popover only once
-
-        if self.popup is None:
-            from shared.popover import Popover
-
-            self.popup = Popover(
-                content=WeatherMenu(config=self.config),
-                point_to=self,
-            )
-            self.popup.connect(
-                "popover-closed", lambda *_: self.remove_style_class("active")
-            )
 
         return False
 
     @cooldown(1)
     def on_button_press(self, _, event):
         if event.button == 1:
-            if self.popup is None:
-                return
-            self.popup.open()
-            self.add_style_class("active")
-
+            self.show_popover()
         else:
             self._update_ui(forced=True)
 
@@ -452,16 +440,19 @@ class WeatherWidget(ButtonWidget, BaseWeatherWidget):
             hasattr(self, "current_weather")
             and (datetime.now() - self.update_time).total_seconds() > 300
         ):
+            weather_icon = WEATHER_ICONS[self.current_weather["weatherCode"]]
             text_icon = (
-                weather_icons[self.current_weather["weatherCode"]]["icon"]
+                weather_icon["icon"]
                 if check_if_day(
                     sunrise_time=self.sunrise_time,
                     sunset_time=self.sunset_time,
                 )
-                else weather_icons[self.current_weather["weatherCode"]]["icon-night"]
+                else weather_icon["icon-night"]
             )
 
-            self.weather_icon.set_label(text_icon)
+            self.weather_icon.set_markup(
+                f'<span foreground="{weather_icon["color"]}">{text_icon}</span>'
+            )
 
         if (datetime.now() - self.update_time).total_seconds() < self.config.get(
             "interval", 3600
@@ -469,7 +460,6 @@ class WeatherWidget(ButtonWidget, BaseWeatherWidget):
             # Check if the update time is more than interval seconds ago
             return True  # Keep the repeater alive
 
-        weather_service = WeatherService()
         weather_service.set_provider(self.config.get("provider", "open-meteo"))
         weather_service.get_weather_async(
             location=self.config.get("location", ""),

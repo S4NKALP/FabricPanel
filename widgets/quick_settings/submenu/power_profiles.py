@@ -4,14 +4,15 @@ from fabric.widgets.label import Label
 from services import power_pfl_service
 from shared.buttons import HoverButton, QSChevronButton
 from shared.submenu import QuickSubMenu
-from utils.icons import text_icons
+from utils.icons import get_text_icon
 from utils.widget_utils import nerd_font_icon
+
+_ICON_MAP = {"power-saver": "󰌪", "performance": "󰓅", "balanced": "󰒂"}
 
 
 def icon_name_to_icon(icon_name: str) -> str:
     """Convert icon name to actual icon."""
-    icon_map = {"power-saver": "󰌪", "performance": "󰓅", "balanced": "󰒂"}
-    return icon_map.get(icon_name, "󰌪")
+    return _ICON_MAP.get(icon_name, "󰌪")
 
 
 class PowerProfileItem(HoverButton):
@@ -87,7 +88,7 @@ class PowerProfileSubMenu(QuickSubMenu):
 
         super().__init__(
             title="Power profiles",
-            title_icon=text_icons["powerprofiles"]["power-saver"],
+            title_icon=get_text_icon("powerprofiles.power-saver"),
             scan_button=self.scan_button,
             child=self.profile_box,
             **kwargs,
@@ -115,8 +116,9 @@ class PowerProfileSubMenu(QuickSubMenu):
         power_pfl_service.connect("changed", self.on_profile_changed)
 
     def on_profile_changed(self, *_):
+        active = power_pfl_service.active_profile
         for item in self.profile_items:
-            item.set_active(power_pfl_service.active_profile)
+            item.set_active(active)
 
 
 class PowerProfileToggle(QSChevronButton):
@@ -124,7 +126,7 @@ class PowerProfileToggle(QSChevronButton):
 
     def __init__(self, submenu: QuickSubMenu, popup, **kwargs):
         super().__init__(
-            action_icon=text_icons["powerprofiles"]["power-saver"],
+            action_icon=get_text_icon("powerprofiles.power-saver"),
             action_label="Power Saver",
             submenu=submenu,
             **kwargs,
@@ -141,9 +143,11 @@ class PowerProfileToggle(QSChevronButton):
         )
 
     def unslug(self, text: str) -> str:
-        return " ".join(word.capitalize() for word in text.split("-"))
+        return " ".join([word.capitalize() for word in text.split("-")])
 
     def update_action_button(self, *_):
-        self.action_icon.set_label(icon_name_to_icon(power_pfl_service.active_profile))
-        self.set_action_label(self.unslug(power_pfl_service.active_profile))
-        self.popup.hide_popover()
+        active = power_pfl_service.active_profile
+        self.action_icon.set_label(icon_name_to_icon(active))
+        self.set_action_label(self.unslug(active))
+        if self.popup is not None:
+            self.popup.hide_popover()

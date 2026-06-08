@@ -1,20 +1,34 @@
 # Standard library imports
-import contextlib
-
 import gi
 
 # Fabric imports
 from fabric.core.service import Property, Service, Signal
-from fabric.utils import bulk_connect, logger
-from gi.repository import GLib
+from fabric.utils import GLib, bulk_connect, logger
 
 from utils.exceptions import PlayerctlImportError
+from utils.functions import safe_disconnect
 
 try:
     gi.require_version("Playerctl", "2.0")
     from gi.repository import Playerctl
 except ValueError:
     raise PlayerctlImportError()
+
+_PLAYBACK_STATUS_MAP = {
+    Playerctl.PlaybackStatus.PAUSED: "paused",
+    Playerctl.PlaybackStatus.PLAYING: "playing",
+    Playerctl.PlaybackStatus.STOPPED: "stopped",
+}
+_LOOP_STATUS_MAP = {
+    Playerctl.LoopStatus.NONE: "none",
+    Playerctl.LoopStatus.TRACK: "track",
+    Playerctl.LoopStatus.PLAYLIST: "playlist",
+}
+_LOOP_STATUS_REVERSE_MAP = {
+    "none": Playerctl.LoopStatus.NONE,
+    "track": Playerctl.LoopStatus.TRACK,
+    "playlist": Playerctl.LoopStatus.PLAYLIST,
+}
 
 
 class MprisPlayer(Service):
@@ -94,8 +108,7 @@ class MprisPlayer(Service):
 
     def on_player_exit(self, player):
         for id in list(self._signal_connectors.values()):
-            with contextlib.suppress(Exception):
-                self._player.disconnect(id)
+            safe_disconnect(self._player, id)
         del self._signal_connectors
         GLib.idle_add(lambda: (self.emit("exit", True), False))
         del self._player
@@ -173,27 +186,17 @@ class MprisPlayer(Service):
 
     @Property(str, "readable")
     def playback_status(self) -> str:
-        return {
-            Playerctl.PlaybackStatus.PAUSED: "paused",
-            Playerctl.PlaybackStatus.PLAYING: "playing",
-            Playerctl.PlaybackStatus.STOPPED: "stopped",
-        }.get(self._player.get_property("playback_status"), "unknown")  # type: ignore
+        return _PLAYBACK_STATUS_MAP.get(
+            self._player.get_property("playback_status"), "unknown"
+        )  # type: ignore
 
     @Property(str, "read-write")
     def loop_status(self) -> str:
-        return {
-            Playerctl.LoopStatus.NONE: "none",
-            Playerctl.LoopStatus.TRACK: "track",
-            Playerctl.LoopStatus.PLAYLIST: "playlist",
-        }.get(self._player.get_property("loop_status"), "unknown")  # type: ignore
+        return _LOOP_STATUS_MAP.get(self._player.get_property("loop_status"), "unknown")  # type: ignore
 
     @loop_status.setter
     def loop_status(self, status: str):
-        loop_status = {
-            "none": Playerctl.LoopStatus.NONE,
-            "track": Playerctl.LoopStatus.TRACK,
-            "playlist": Playerctl.LoopStatus.PLAYLIST,
-        }.get(status)
+        loop_status = _LOOP_STATUS_REVERSE_MAP.get(status)
         self._player.set_loop_status(loop_status) if loop_status else None
 
     @Property(bool, "readable", default_value=False)

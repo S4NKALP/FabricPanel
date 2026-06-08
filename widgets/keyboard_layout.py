@@ -1,7 +1,5 @@
-import re
-
 from fabric.hyprland.widgets import HyprlandEvent, get_hyprland_connection
-from fabric.utils import logger
+from fabric.utils import logger, re
 from fabric.widgets.label import Label
 
 from shared.widget_container import ButtonWidget
@@ -20,7 +18,7 @@ class KeyboardLayoutWidget(ButtonWidget):
         if self.config.get("show_icon", True):
             # Create a TextIcon with the specified icon and size
             self.icon = nerd_font_icon(
-                icon=self.config.get("icon", "󰕸"),
+                icon=self.config.get("icon"),
                 props={"style_classes": ["panel-font-icon"]},
             )
             self.container_box.add(self.icon)
@@ -65,7 +63,7 @@ class KeyboardLayoutWidget(ButtonWidget):
 
             label = get_kblayout_map().get(layout, layout)
 
-            if self.config.get("tooltip", False):
+            if self.config.get("tooltip", False) and self.tooltips_enabled:
                 caps = "On" if main_kb["capsLock"] else "Off"
                 num = "On" if main_kb["numLock"] else "Off"
                 self.set_tooltip_text(

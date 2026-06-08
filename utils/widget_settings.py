@@ -83,6 +83,7 @@ SystemTray = TypedDict(
         "ignored": list[str],
         "hidden": list[str],
         "hide_when_empty": bool,
+        "tooltip": bool,
     },
 )
 
@@ -108,13 +109,13 @@ WindowCount = TypedDict(
 Battery = TypedDict(
     "Battery",
     {
-        "label": bool,
         "tooltip": bool,
-        "icon_size": int,
+        "label_format": str,
         "full_battery_level": int,
-        "hide_label_when_full": bool,
         "hide_when_missing": bool,
         "notifications": dict,
+        "hide_percent_when_full": bool,
+        "icons": list[str],
     },
 )
 
@@ -133,6 +134,26 @@ StopWatch = TypedDict(
     },
 )
 
+Notification_Timeout = TypedDict(
+    "Notification_Timeout",
+    {
+        "low": int,
+        "normal": int,
+        "critical": int,
+    },
+)
+
+
+Notification_Persist = TypedDict(
+    "Notification_Persist",
+    {
+        "enabled": bool,
+        "low": bool,
+        "normal": bool,
+        "critical": bool,
+        "max_count": int,
+    },
+)
 
 # Notification configuration
 Notification = TypedDict(
@@ -140,15 +161,15 @@ Notification = TypedDict(
     {
         "enabled": bool,
         "ignored": list[str],
-        "timeout": int,
+        "timeout": Notification_Timeout,
         "max_lines": int,
         "max_expanded_lines": int,
         "anchor": Anchor,
         "auto_dismiss": bool,
-        "persist": bool,
+        "respect_expire": bool,
+        "persist": Notification_Persist,
         "play_sound": bool,
         "sound_file": str,
-        "max_count": int,
         "dismiss_on_hover": bool,
         "dnd_on_screencast": bool,
         "max_actions": int,
@@ -248,9 +269,9 @@ Dock = TypedDict(
         "tooltip": bool,
         "orientation": Orientation,
         "behavior": Dock_Behavior,
+        "show_launcher": bool,
+        "launcher_position": str,
         "icon_size": int,
-        "preview_apps": bool,
-        "preview_size": tuple[int, int],
         "show_when_no_windows": bool,
         "group_apps": bool,
         "truncation_size": int,
@@ -305,8 +326,10 @@ General = TypedDict(
         "check_updates": bool,
         "debug": bool,
         "monitor_styles": bool,
-        "auto_reload": bool,
+        "auto_restart": bool,
+        "restart_delay": int,
         "multi_monitor": bool,
+        "tooltips": bool,
     },
 )
 
@@ -370,12 +393,10 @@ NetworkUsage = TypedDict(
     "NetworkUsage",
     {
         **BaseConfig.__annotations__,
-        "upload_icon": str,
-        "download_icon": str,
-        "download": bool,
-        "upload": bool,
+        "label_format": str,
         "upload_threshold": int,
         "download_threshold": int,
+        "interval": int,
         "kb_digits": int,
         "mb_digits": int,
     },
@@ -401,11 +422,11 @@ Workspaces = TypedDict(
     {
         "count": int,
         "hide_unoccupied": bool,
-        "default_label_format": str,
+        "label_format": str,
         "ignored": list[int],
         "icon_map": dict,
         "reverse_scroll": bool,
-        "show_numbered": bool,
+        "style": str,
         "empty_scroll": bool,
     },
 )
@@ -490,7 +511,7 @@ Overview_Button = TypedDict(
 )
 
 
-Cliphist = TypedDict("Cliphist", {"icon": str, **BaseConfig.__annotations__})
+ClipBoard = TypedDict("ClipBoard", {"icon": str, **BaseConfig.__annotations__})
 
 Kanban = TypedDict("kanban", {"icon": str, **BaseConfig.__annotations__})
 
@@ -514,7 +535,7 @@ DateTimeNotification = TypedDict(
 DateTimeMenu = TypedDict(
     "DateTimeMenu",
     {
-        "format": str,
+        "date_format": str,
         "notification": DateTimeNotification,
         "calendar": bool,
         "hover_reveal": bool,
@@ -534,18 +555,20 @@ Custom_Button_Group = TypedDict(
     },
 )
 
-# Custom Module configuration (Waybar-compatible)
-CustomModule = TypedDict(
-    "CustomModule",
+# Custom Widget configuration (Waybar-compatible)
+CustomWidgetConfig = TypedDict(
+    "CustomWidgetConfig",
     {
         "exec": str,
         "exec_on_event": bool,
         "interval": int,
         "return_type": Return_Type,
-        "format": str,
+        "label_format": str,
         "max_length": int,
+        "min_length": int,
         "rotate": int,
         "tooltip": bool,
+        "tooltip_format": str,
         "on_click": str,
         "on_click_right": str,
         "on_click_middle": str,
@@ -689,6 +712,19 @@ Recording = TypedDict(
     },
 )
 
+# Privacy indicator configuration
+PrivacyIndicator = TypedDict(
+    "PrivacyIndicator",
+    {
+        "tooltip": bool,
+        "hide_when_inactive": bool,
+        "mic_ignored": list[str],
+        "cam_ignored": list[str],
+        "notify": bool,
+        "modules": list[str],
+    },
+)
+
 # ScreenShot configuration
 ScreenShot = TypedDict(
     "ScreenShot",
@@ -705,12 +741,19 @@ ScreenShot = TypedDict(
     },
 )
 
+# Breathe configuration
+Breathe = TypedDict(
+    "Breathe",
+    {"tooltip": bool, "label": bool, "icon": str},
+)
+
 
 class Widgets(TypedDict):
     """Configuration for all widgets in the bar"""
 
     battery: Battery
     bluetooth: BlueTooth
+    breathe: Breathe
     brightness: Brightness
     cava: Cava
     click_counter: ClickCounter
@@ -726,7 +769,7 @@ class Widgets(TypedDict):
     keyboard: Keyboard
     language: Language
     custom_button_group: Custom_Button_Group
-    custom_module: list[CustomModule]
+    custom_widget: list[CustomWidgetConfig]
     gpu: Gpu
     memory: Memory
     microphone: MicroPhone
@@ -736,6 +779,7 @@ class Widgets(TypedDict):
     overview_button: Overview_Button
     wallpaper: WallPaper
     power: PowerButton
+    privacy_indicator: PrivacyIndicator
     quick_settings: QuickSettings
     recorder: Recording
     screenshot: ScreenShot
@@ -754,7 +798,7 @@ class Widgets(TypedDict):
     window_count: WindowCount
     workspaces: Workspaces
     world_clock: WorldClock
-    cliphist: Cliphist
+    clipboard: ClipBoard
 
 
 class BarConfig(TypedDict):

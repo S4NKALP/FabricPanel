@@ -3,8 +3,7 @@ import warnings
 
 from fabric.hyprland import Hyprland
 from fabric.hyprland.widgets import get_hyprland_connection
-from fabric.utils import bulk_connect, logger
-from gi.repository import Gdk, GLib
+from fabric.utils import Gdk, GLib, bulk_connect, logger
 
 from .constants import MONITOR_HOTPLUG_DELAY_MS
 from .functions import ttl_lru_cache
@@ -79,7 +78,8 @@ class MonitorWatcher:
         self._hyprland_connection = None
 
     def add_callback(self, callback):
-        self.callbacks.append(callback)
+        if callback not in self.callbacks:
+            self.callbacks.append(callback)
 
     def start_watching(self):
         if self._hyprland_connection:
@@ -99,7 +99,7 @@ class MonitorWatcher:
         GLib.timeout_add(MONITOR_HOTPLUG_DELAY_MS, self._notify_callbacks)
 
     def _notify_callbacks(self):
-        for callback in self.callbacks:
+        for callback in tuple(self.callbacks):
             try:
                 callback()
             except Exception as e:

@@ -1,16 +1,23 @@
-import os
-
 from fabric import Application
-from fabric.utils import exec_shell_command, get_relative_path, logger, monitor_file
+from fabric.utils import (
+    GLib,
+    exec_shell_command,
+    get_relative_path,
+    idle_add,
+    logger,
+    monitor_file,
+    os,
+)
 
 import utils.functions as helpers
+from modules.bar import Bar
 from utils.colors import Colors
+from utils.config import theme_config, widget_config
 from utils.constants import APP_DATA_DIRECTORY, APPLICATION_NAME
 
 
 def process_and_apply_css(app: Application):
     """Compile and apply CSS in background thread."""
-    from gi.repository import GLib
 
     @helpers.run_in_thread
     def _compile():
@@ -21,14 +28,14 @@ def process_and_apply_css(app: Application):
 
         if output == "":
             logger.info(f"{Colors.INFO}[Main] CSS applied")
-            GLib.idle_add(
+            idle_add(
                 lambda: app.set_stylesheet_from_file(get_relative_path("dist/main.css"))
             )
         else:
             logger.exception(f"{Colors.ERROR}[Main]Failed to compile sass!")
             logger.exception(f"{Colors.ERROR}[Main] {output}")
 
-            GLib.idle_add(lambda: app.set_stylesheet_from_string(""))
+            idle_add(lambda: app.set_stylesheet_from_string(""))
 
     _compile()
 
@@ -36,8 +43,6 @@ def process_and_apply_css(app: Application):
 def main():
     """Main function to run the application."""
     # Defer config loading until main() is called
-    from modules.bar import StatusBar
-    from utils.config import theme_config, widget_config
 
     general_options = widget_config.get("general", {})
     module_options = widget_config.get("modules", {})
@@ -60,7 +65,7 @@ def main():
     app = Application(APPLICATION_NAME)
 
     # Create status bars
-    StatusBar.create_bars(app, widget_config)
+    Bar.create_bars(app, widget_config)
 
     if module_options.get("notification", {}).get("enabled", False):
         from modules.notification import NotificationPopup
@@ -69,6 +74,8 @@ def main():
 
     if module_options.get("overview", {}).get("enabled", False):
         from modules.overview import OverViewOverlay
+
+        logger.info("[Main] Adding overview module")
 
         app.add_window(OverViewOverlay(widget_config))
 
@@ -122,7 +129,7 @@ def main():
             logger.disable(log)
 
     # Start config file watching if enabled
-    if general_options.get("auto_reload", True):
+    if general_options.get("auto_restart", True):
         from utils.config_watcher import start_config_watching
 
         start_config_watching()
@@ -130,8 +137,21 @@ def main():
     if general_options.get("monitor_styles", False):
         main_css_file = monitor_file(get_relative_path("styles"))
         common_css_file = monitor_file(get_relative_path("styles/common"))
-        main_css_file.connect("changed", lambda *_: process_and_apply_css(app))
-        common_css_file.connect("changed", lambda *_: process_and_apply_css(app))
+        css_reload_timeout_id = 0
+        css_reload_debounce_ms = 200
+
+        def schedule_css_reload(*_):
+            nonlocal css_reload_timeout_id
+            if css_reload_timeout_id:
+                GLib.source_remove(css_reload_timeout_id)
+
+            css_reload_timeout_id = GLib.timeout_add(
+                css_reload_debounce_ms,
+                lambda: (process_and_apply_css(app), False),
+            )
+
+        main_css_file.connect("changed", schedule_css_reload)
+        common_css_file.connect("changed", schedule_css_reload)
 
     process_and_apply_css(app)
 
@@ -153,6 +173,12 @@ def main():
         window = next((w for w in app.get_windows() if w.get_name() == name), None)
         if window:
             window.toggle()
+
+        return False
+
+    @Application.action()
+    def open_inspector():
+        app.open_inspector()
 
         return False
 

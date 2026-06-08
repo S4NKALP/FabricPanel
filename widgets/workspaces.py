@@ -1,6 +1,5 @@
 from fabric.core.widgets import WorkspaceButton
-from fabric.hyprland.widgets import HyprlandWorkspaces as Workspaces
-from fabric.utils import bulk_connect
+from fabric.hyprland.widgets import HyprlandWorkspaces
 
 from shared.widget_container import BoxWidget
 from utils.functions import get_distro_icon, unique_list
@@ -13,13 +12,12 @@ class WorkSpacesWidget(BoxWidget):
     def __init__(self, **kwargs):
         super().__init__(name="workspaces", spacing=1, **kwargs)
 
-        config = self.config
-        self.ignored_ws = {int(x) for x in unique_list(config.get("ignored", []))}
-        self.icon_map = config.get("icon_map", {})
-        self.default_format = config.get("default_label_format", "{id}")
-        self.workspace_count = config.get("count", 8)
-        self.hide_unoccupied = config.get("hide_unoccupied", False)
-        self.show_numbered = config.get("show_numbered", True)
+        self.ignored_ws = {int(x) for x in unique_list(self.config.get("ignored", []))}
+        self.icon_map = self.config.get("icon_map", {})
+        self.label_format = self.config.get("label_format", "{id}")
+        self.workspace_count = self.config.get("count", 8)
+        self.hide_unoccupied = self.config.get("hide_unoccupied", False)
+        self.style = self.config.get("style", "numbered")
 
         self.icon = nerd_font_icon(
             icon=get_distro_icon(),
@@ -27,8 +25,9 @@ class WorkSpacesWidget(BoxWidget):
         )
 
         # Create a HyperlandWorkspace widget to manage workspace buttons
-        self.workspace = Workspaces(
+        self.workspace = HyprlandWorkspaces(
             name="workspaces_widget",
+            style_classes=self.style,
             spacing=4,
             # Create buttons for each workspace if occupied
             buttons=None
@@ -48,44 +47,13 @@ class WorkSpacesWidget(BoxWidget):
         self.children = (self.icon, self.workspace)
 
     def _create_workspace_label(self, ws_id: int) -> str:
-        return self.icon_map.get(str(ws_id), self.default_format.format(id=ws_id))
-
-    def _update_empty_state(self, button: WorkspaceButton, *_):
-        style_context = button.get_style_context()
-        has_unoccupied = style_context.has_class("unoccupied")
-        has_occupied = style_context.has_class("occupied")
-
-        if button.empty:
-            if not has_unoccupied:
-                button.add_style_class("unoccupied")
-            if has_occupied:
-                button.remove_style_class("occupied")
-        else:
-            if has_unoccupied:
-                button.remove_style_class("unoccupied")
-            if not has_occupied:
-                button.add_style_class("occupied")
+        return self.icon_map.get(str(ws_id), self.label_format.format(id=ws_id))
 
     def _setup_button(self, ws_id: int) -> WorkspaceButton:
         button = WorkspaceButton(
             id=ws_id,
-            label=self._create_workspace_label(ws_id) if self.show_numbered else None,
+            label=self._create_workspace_label(ws_id) if self.style != "pill" else None,
             visible=ws_id not in self.ignored_ws,
         )
 
-        # Only add empty state styling when showing all workspaces
-        if not self.hide_unoccupied:
-            # Connect to state changes
-            bulk_connect(
-                button,
-                {
-                    "notify::empty": lambda *args: self._update_empty_state(
-                        button, *args
-                    ),
-                    "notify::active": lambda *args: self._update_empty_state(
-                        button, *args
-                    ),
-                },
-            )
-            self._update_empty_state(button)
         return button

@@ -10,8 +10,12 @@
   padding: common.toEm(12) common.toEm(20);
   margin-bottom: 100px;
   opacity: variable.$modules-osd-opacity * 0.01;
-  border: if(variable.$modules-osd-border-enabled, variable.$border, none);
-  border-width: variable.$modules-osd-border-width;
+
+  @include common.widget-border(
+    variable.$modules-osd-border-radius,
+    variable.$modules-osd-border-enabled,
+    variable.$modules-osd-border-width
+  );
 
   @include common.module-shadow(
     variable.$modules-osd-shadow-enabled,
@@ -33,14 +37,16 @@
     background-color: theme.$accent-red;
   }
 
-  .muted trough highlight, .muted slider {
+  .muted trough highlight,
+  .muted slider {
     background-color: theme.$surface-disabled;
   }
 
-
-  @include common.slider($knob: variable.$modules-osd-sliders-knob, $min-length: 150px, $height: variable.$modules-osd-sliders-height);
-
-
+  @include common.slider(
+    $knob: variable.$modules-osd-sliders-knob,
+    $min-length: 150px,
+    $height: variable.$modules-osd-sliders-height
+  );
 }
 
 #osd-container.vertical {

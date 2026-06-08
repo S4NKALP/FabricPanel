@@ -1,11 +1,9 @@
 import subprocess
-import time
 from typing import Any, Literal
 
 import gi
 from fabric.core.service import Property, Service, Signal
-from fabric.utils import bulk_connect, logger
-from gi.repository import Gio
+from fabric.utils import Gio, bulk_connect, logger, time
 
 from utils.constants import NETWORK_RECENCY_THRESHOLD_SECONDS
 from utils.exceptions import NetworkManagerNotFoundError
@@ -17,6 +15,34 @@ try:
     from gi.repository import NM
 except ValueError:
     raise NetworkManagerNotFoundError()
+
+_WIFI_STRENGTH_MAP = {
+    80: "network-wireless-signal-excellent-symbolic",
+    60: "network-wireless-signal-good-symbolic",
+    40: "network-wireless-signal-ok-symbolic",
+    20: "network-wireless-signal-weak-symbolic",
+    0: "network-wireless-signal-none-symbolic",
+}
+_ACTIVE_CONN_STATE_MAP = {
+    NM.ActiveConnectionState.ACTIVATED: "activated",
+    NM.ActiveConnectionState.ACTIVATING: "activating",
+    NM.ActiveConnectionState.DEACTIVATING: "deactivating",
+    NM.ActiveConnectionState.DEACTIVATED: "deactivated",
+}
+_DEVICE_STATE_MAP = {
+    NM.DeviceState.UNMANAGED: "unmanaged",
+    NM.DeviceState.UNAVAILABLE: "unavailable",
+    NM.DeviceState.DISCONNECTED: "disconnected",
+    NM.DeviceState.PREPARE: "prepare",
+    NM.DeviceState.CONFIG: "config",
+    NM.DeviceState.NEED_AUTH: "need_auth",
+    NM.DeviceState.IP_CONFIG: "ip_config",
+    NM.DeviceState.IP_CHECK: "ip_check",
+    NM.DeviceState.SECONDARIES: "secondaries",
+    NM.DeviceState.ACTIVATED: "activated",
+    NM.DeviceState.DEACTIVATING: "deactivating",
+    NM.DeviceState.FAILED: "failed",
+}
 
 
 class Wifi(Service):
@@ -136,15 +162,17 @@ class Wifi(Service):
         try:
             # List all saved connections
             result = subprocess.check_output(
-                "nmcli connection show", shell=True, text=True
+                ["nmcli", "-g", "NAME", "connection", "show"],
+                text=True,
             )
 
             # Find connection ID that matches SSID
-            for line in result.splitlines():
-                if ssid in line:
-                    connection_id = line.split()[0]
+            for connection_id in (line.strip() for line in result.splitlines()):
+                if not connection_id:
+                    continue
+                if connection_id == ssid:
                     subprocess.check_call(
-                        f"nmcli connection delete id '{connection_id}'", shell=True
+                        ["nmcli", "connection", "delete", "id", connection_id]
                     )
                     logger.info(
                         f"[NetworkService] Deleted saved connection: {connection_id}"
@@ -158,6 +186,9 @@ class Wifi(Service):
 
         except subprocess.CalledProcessError as e:
             logger.exception(f"[NetworkService] Error forgetting connection: {e}")
+            return False
+        except FileNotFoundError:
+            logger.exception("[NetworkService] nmcli not found")
             return False
 
     def connect_network(
@@ -223,13 +254,7 @@ class Wifi(Service):
             return "network-wireless-disabled-symbolic"
 
         if self.internet == "activated":
-            return {
-                80: "network-wireless-signal-excellent-symbolic",
-                60: "network-wireless-signal-good-symbolic",
-                40: "network-wireless-signal-ok-symbolic",
-                20: "network-wireless-signal-weak-symbolic",
-                00: "network-wireless-signal-none-symbolic",
-            }.get(
+            return _WIFI_STRENGTH_MAP.get(
                 min(80, 20 * round(self._ap.get_strength() / 20)),
                 "network-wireless-no-route-symbolic",
             )
@@ -248,12 +273,7 @@ class Wifi(Service):
         if not active_connection:
             return "disconnected"
 
-        return {
-            NM.ActiveConnectionState.ACTIVATED: "activated",
-            NM.ActiveConnectionState.ACTIVATING: "activating",
-            NM.ActiveConnectionState.DEACTIVATING: "deactivating",
-            NM.ActiveConnectionState.DEACTIVATED: "deactivated",
-        }.get(
+        return _ACTIVE_CONN_STATE_MAP.get(
             active_connection.get_state(),
             "unknown",
         )
@@ -270,13 +290,7 @@ class Wifi(Service):
             "active-ap": self._ap,
             "strength": strength,
             "frequency": ap.get_frequency(),
-            "icon-name": {
-                80: "network-wireless-signal-excellent-symbolic",
-                60: "network-wireless-signal-good-symbolic",
-                40: "network-wireless-signal-ok-symbolic",
-                20: "network-wireless-signal-weak-symbolic",
-                00: "network-wireless-signal-none-symbolic",
-            }.get(
+            "icon-name": _WIFI_STRENGTH_MAP.get(
                 min(80, 20 * round(strength / 20)),
                 "network-wireless-no-route-symbolic",
             ),
@@ -355,20 +369,7 @@ class Wifi(Service):
 
     @Property(int, "readable")
     def state(self):
-        return {
-            NM.DeviceState.UNMANAGED: "unmanaged",
-            NM.DeviceState.UNAVAILABLE: "unavailable",
-            NM.DeviceState.DISCONNECTED: "disconnected",
-            NM.DeviceState.PREPARE: "prepare",
-            NM.DeviceState.CONFIG: "config",
-            NM.DeviceState.NEED_AUTH: "need_auth",
-            NM.DeviceState.IP_CONFIG: "ip_config",
-            NM.DeviceState.IP_CHECK: "ip_check",
-            NM.DeviceState.SECONDARIES: "secondaries",
-            NM.DeviceState.ACTIVATED: "activated",
-            NM.DeviceState.DEACTIVATING: "deactivating",
-            NM.DeviceState.FAILED: "failed",
-        }.get(self._device.get_state(), "unknown")
+        return _DEVICE_STATE_MAP.get(self._device.get_state(), "unknown")
 
 
 class Ethernet(Service):
@@ -390,12 +391,7 @@ class Ethernet(Service):
         if not active_connection:
             return "disconnected"
 
-        return {
-            NM.ActiveConnectionState.ACTIVATED: "activated",
-            NM.ActiveConnectionState.ACTIVATING: "activating",
-            NM.ActiveConnectionState.DEACTIVATING: "deactivating",
-            NM.ActiveConnectionState.DEACTIVATED: "deactivated",
-        }.get(
+        return _ACTIVE_CONN_STATE_MAP.get(
             active_connection.get_state(),
             "disconnected",
         )

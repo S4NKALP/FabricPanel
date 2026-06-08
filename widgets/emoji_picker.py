@@ -1,18 +1,15 @@
-import os
-
 import ijson
-from fabric.utils import logger, remove_handler
+from fabric.utils import Gdk, Gio, GLib, idle_add, logger, os, remove_handler
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.entry import Entry
 from fabric.widgets.label import Label
 from fabric.widgets.stack import Stack
-from gi.repository import Gdk, Gio, GLib
 
 from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
 from utils.constants import ASSETS_DIR
-from utils.thread import run_in_thread
+from utils.decorators import run_in_thread
 from utils.widget_utils import nerd_font_icon
 
 
@@ -94,7 +91,7 @@ class EmojiPickerMenu(Box):
                     logger.exception(
                         f"Emoji JSON file not found: {self._emoji_file_path}"
                     )
-                    GLib.idle_add(self._on_emoji_load_complete, {}, callback)
+                    idle_add(self._on_emoji_load_complete, {}, callback)
                     return
 
                 # Use ijson for streaming JSON parsing
@@ -104,10 +101,10 @@ class EmojiPickerMenu(Box):
                         for emoji_char, emoji_info in ijson.kvitems(f, "")
                     }
 
-                GLib.idle_add(self._on_emoji_load_complete, emoji_dict, callback)
+                idle_add(self._on_emoji_load_complete, emoji_dict, callback)
             except Exception as e:
                 logger.exception(f"Error loading emoji data: {e}")
-                GLib.idle_add(self._on_emoji_load_complete, {}, callback)
+                idle_add(self._on_emoji_load_complete, {}, callback)
 
         _load()
 
@@ -396,7 +393,7 @@ class EmojiPickerWidget(ButtonWidget, PopoverMixin):
 
         self.container_box.add(
             nerd_font_icon(
-                icon=self.config.get("icon", "󰕸"),
+                icon=self.config.get("icon"),
                 props={"style_classes": ["panel-font-icon"]},
             )
         )
@@ -404,7 +401,7 @@ class EmojiPickerWidget(ButtonWidget, PopoverMixin):
         if self.config.get("label", True):
             self.container_box.add(Label(label="Emoji", style_classes=["panel-text"]))
 
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             self.set_tooltip_text("Emoji Picker")
 
         self.setup_popover(lambda: EmojiPickerMenu(parent=self))

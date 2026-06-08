@@ -1,8 +1,7 @@
-import operator
 from collections.abc import Iterator
 from contextlib import suppress
 
-from fabric.utils import DesktopApp, idle_add, logger, remove_handler
+from fabric.utils import DesktopApp, Gdk, GLib, Gtk, idle_add, logger, remove_handler
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.entry import Entry
@@ -10,7 +9,6 @@ from fabric.widgets.grid import Grid
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
-from gi.repository import Gdk, GLib, Gtk
 
 from shared.popup import PopupWindow
 from utils.app import AppUtils
@@ -272,39 +270,62 @@ class AppLauncher(PopupWindow):
             # For list layout, simple clear
             self.viewport.children = []
 
+    def _prepare_viewport_render(self):
+        """Clear viewport state before scheduling a new render pass."""
+        self._clear_viewport_safely()
+        self._grid_position = 0
+
+    def _filter_applications(self, query: str) -> tuple[Iterator[DesktopApp], bool]:
+        """Filter applications by query and return iterator + resize hint."""
+        query_lower = query.casefold()
+        filtered_apps = [
+            app
+            for app in self._all_apps
+            if query_lower
+            in (
+                (app.display_name or "")
+                + " "
+                + (app.name or "")
+                + " "
+                + (app.generic_name or "")
+            ).casefold()
+        ]
+        should_resize = len(filtered_apps) == len(self._all_apps)
+        return iter(filtered_apps), should_resize
+
+    def _render_step(
+        self,
+        apps_iter: Iterator[DesktopApp],
+        should_resize: bool,
+    ) -> bool:
+        """Lazy renderer callback used by GLib idle loop."""
+        if self.add_next_application(apps_iter):
+            return True
+        if should_resize:
+            self.resize_viewport()
+        return False
+
+    def _schedule_viewport_render(
+        self,
+        apps_iter: Iterator[DesktopApp],
+        should_resize: bool,
+    ) -> int:
+        """Schedule lazy viewport render and return handler id."""
+        return idle_add(
+            self._render_step,
+            apps_iter,
+            should_resize,
+            pin=True,
+        )
+
     def arrange_viewport(self, query: str = ""):
         """Arrange viewport with filtered applications."""
         with HandlerManager(self) as handler_mgr:
-            # Clear viewport safely
-            self._clear_viewport_safely()
-            self._grid_position = 0
-
-            # Simple and efficient app filtering
-            query_lower = query.casefold()
-            filtered_apps_iter = iter(
-                [
-                    app
-                    for app in self._all_apps
-                    if query_lower
-                    in (
-                        (app.display_name or "")
-                        + " "
-                        + (app.name or "")
-                        + " "
-                        + (app.generic_name or "")
-                    ).casefold()
-                ]
-            )
-            should_resize = operator.length_hint(filtered_apps_iter) == len(
-                self._all_apps
-            )
-
-            # Start lazy loading process
-            handler_id = idle_add(
-                lambda *args: self.add_next_application(*args)
-                or (self.resize_viewport() if should_resize else False),
+            self._prepare_viewport_render()
+            filtered_apps_iter, should_resize = self._filter_applications(query)
+            handler_id = self._schedule_viewport_render(
                 filtered_apps_iter,
-                pin=True,
+                should_resize,
             )
             handler_mgr.set_new_handler(handler_id)
 

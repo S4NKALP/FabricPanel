@@ -111,14 +111,15 @@ class UpdatesWidget(ButtonWidget):
             # Update icon
             if self.config.get("show_icon", True):
                 icon = (
-                    self.config.get("available_icon", "󰕸")
+                    self.config.get("available_icon")
                     if total > 0
                     else self.config.get("no_updates_icon", "󰒲")
                 )
                 self.icon.set_label(icon)
 
             # Tooltip
-            self.set_tooltip_text(data.get("tooltip", ""))
+            if self.config.get("tooltip", True) and self.tooltips_enabled:
+                self.set_tooltip_text(data.get("tooltip", ""))
 
             # Auto-hide logic
             if self.config.get("auto_hide", False):

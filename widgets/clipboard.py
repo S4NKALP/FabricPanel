@@ -1,42 +1,53 @@
-import os
-import re
+import shutil
 import tempfile
 from urllib.parse import unquote, urlparse
 
-import gi
-from fabric.utils import logger, remove_handler
+from fabric.utils import (
+    Gdk,
+    GdkPixbuf,
+    Gio,
+    GLib,
+    Gtk,
+    bulk_connect,
+    idle_add,
+    logger,
+    os,
+    re,
+    remove_handler,
+)
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.entry import Entry
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 
 from shared.list import ListBox
 from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
 from utils.widget_utils import nerd_font_icon
 
-gi.require_versions({"Gdk": "3.0", "GdkPixbuf": "2.0"})
-
-
 # Pre-compiled regex for HTML image tag detection
 _HTML_IMG_RE = re.compile(r"^\s*<img\s+")
 
 
 # TODO: add scrolled pagination
+
+
 class ClipHistoryMenu(Box):
     """A widget to display and manage clipboard history."""
 
     def __init__(
         self,
+        parent=None,
         **kwargs,
     ):
         super().__init__(
             name="clip-menu",
             **kwargs,
         )
+
+        self._parent = parent
 
         # Create a temporary directory for image icons
         self.tmp_dir = tempfile.mkdtemp(prefix="cliphist-")
@@ -46,6 +57,7 @@ class ClipHistoryMenu(Box):
         self.selected_index = -1  # Track the selected item index
         self._arranger_handler = 0
         self.clipboard_items = []
+        self.filtered_items = []
         self._loading = False
         self._pending_updates = False
 
@@ -76,11 +88,13 @@ class ClipHistoryMenu(Box):
         self.search_entry.set_icon_from_icon_name(
             Gtk.EntryIconPosition.SECONDARY, "edit-clear"
         )
-
-        self.search_entry.connect("notify::text", self.on_search_text_changed)
-
-        # Connect handler for icon clicks
-        self.search_entry.connect("icon-press", self.on_icon_press)
+        bulk_connect(
+            self.search_entry,
+            {
+                "notify::text": self.on_search_text_changed,
+                "icon-press": self.on_icon_press,
+            },
+        )
 
         self.search_entry.props.xalign = 0.1
 
@@ -119,6 +133,7 @@ class ClipHistoryMenu(Box):
         )
 
         self.add(self.history_box)
+        self.connect("destroy", self._on_destroy)
         self.open()  # Load items when the widget is created
 
     def on_icon_press(self, entry, icon_pos, event):
@@ -160,6 +175,9 @@ class ClipHistoryMenu(Box):
         """Close the clipboard history panel"""
         self.viewport.children = []
         self.selected_index = -1  # Reset selection
+        self.filtered_items = []
+        if self._parent is not None:
+            self._parent.hide_popover()
 
     def open(self):
         """Open the clipboard history panel and load items"""
@@ -224,8 +242,11 @@ class ClipHistoryMenu(Box):
             if filter_text.lower() in content.lower():
                 filtered_items.append(item)
 
+            self.filtered_items = filtered_items
+
         # Show message if no items are found
         if not filtered_items:
+            self.filtered_items = []
             # Create a container box to better center the message
             container = Box(
                 name="no-clip-container",
@@ -270,7 +291,7 @@ class ClipHistoryMenu(Box):
 
         # Schedule next batch if there are more items
         if end < len(items):
-            GLib.idle_add(self._display_items_batch, items, end, batch_size)
+            idle_add(self._display_items_batch, items, end, batch_size)
         else:
             # Auto-select first item if we have filter text
             if self.search_entry.get_text() and self.viewport.get_children():
@@ -353,9 +374,17 @@ class ClipHistoryMenu(Box):
             button = self.create_text_item_button(item_id, display_text)
 
         # Add key press event handler for Enter key
-        button.connect(
-            "key-press-event",
-            lambda widget, event, id=item_id: self.on_item_key_press(widget, event, id),
+
+        bulk_connect(
+            button,
+            {
+                "key-press-event": lambda widget, event, id=item_id: (
+                    self.on_item_key_press(widget, event, id)
+                ),
+                "button-press-event": lambda widget, event, id=item_id: (
+                    self.on_item_key_press(widget, event, id)
+                ),
+            },
         )
 
         # Make sure button can receive focus and key events
@@ -368,7 +397,7 @@ class ClipHistoryMenu(Box):
         """Load image preview asynchronously"""
         if item_id in self.image_cache:
             # Use cached pixbuf
-            GLib.idle_add(self._update_image_button, button, self.image_cache[item_id])
+            idle_add(self._update_image_button, button, self.image_cache[item_id])
             return
 
         try:
@@ -549,6 +578,14 @@ class ClipHistoryMenu(Box):
         elif event.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
             self.use_selected_item()
             return True
+        elif event.keyval == Gdk.KEY_Home:
+            self.update_selection(0)
+            return True
+        elif event.keyval == Gdk.KEY_End:
+            children = self.viewport.get_children()
+            if children:
+                self.update_selection(len(children) - 1)
+            return True
         elif event.keyval == Gdk.KEY_Delete:
             self.delete_selected_item()
             return True
@@ -582,8 +619,8 @@ class ClipHistoryMenu(Box):
             return
 
         # Allow starting selection from nothing
-        if self.selected_index == -1 and delta == 1:
-            new_index = 0
+        if self.selected_index == -1:
+            new_index = 0 if delta > 0 else len(children) - 1
         else:
             new_index = self.selected_index + delta
 
@@ -617,63 +654,91 @@ class ClipHistoryMenu(Box):
     def scroll_to_selected(self, button):
         """Scroll to ensure the selected item is visible"""
 
-        GLib.idle_add(self._scroll, button)
+        idle_add(self._scroll, button)
 
     def use_selected_item(self, *_):
         """Use (paste) the selected clipboard item"""
-        children = self.viewport.get_children()
-        if (
-            not children
-            or self.selected_index == -1
-            or self.selected_index >= len(self.clipboard_items)
-        ):
+        if not self.filtered_items:
+            return
+
+        if self.selected_index == -1:
+            self.update_selection(0)
+
+        if self.selected_index == -1 or self.selected_index >= len(self.filtered_items):
             return
 
         # Get the item ID from the first part before the tab
-        item_line = self.clipboard_items[self.selected_index]
+        item_line = self.filtered_items[self.selected_index]
         item_id = item_line.split("\t", 1)[0]
         self.paste_item(item_id)
 
     def delete_selected_item(self):
         """Delete the selected clipboard item"""
-        children = self.viewport.get_children()
-        if not children or self.selected_index == -1:
+        if not self.filtered_items:
+            return
+
+        if self.selected_index == -1:
+            self.update_selection(0)
+
+        if self.selected_index == -1 or self.selected_index >= len(self.filtered_items):
             return
 
         # Get the item ID from the first part before the tab
-        item_line = self.clipboard_items[self.selected_index]
+        item_line = self.filtered_items[self.selected_index]
         item_id = item_line.split("\t", 1)[0]
         self.delete_item(item_id)
 
     def on_item_key_press(self, widget, event, item_id):
         """Handle key press events on clipboard items"""
+        if event.type == Gdk.EventType.BUTTON_PRESS:
+            # Copy item to clipboard and close
+            self.paste_item(item_id)
+            return True
+
         if event.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
             # Copy item to clipboard and close
             self.paste_item(item_id)
             return True
         return False
 
+    def _cleanup_resources(self):
+        """Best-effort cleanup for timers, caches, and temporary resources."""
+        if self._search_timer_id > 0:
+            remove_handler(self._search_timer_id)
+            self._search_timer_id = 0
+
+        if self._arranger_handler:
+            remove_handler(self._arranger_handler)
+            self._arranger_handler = 0
+
+        self.viewport.remove_all()
+        self.clipboard_items.clear()
+        self.image_cache.clear()
+
+        if hasattr(self, "tmp_dir") and self.tmp_dir and os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir, ignore_errors=True)
+            self.tmp_dir = ""
+
+    def _on_destroy(self, *_):
+        self._cleanup_resources()
+
     def __del__(self):
         """Clean up temporary files on destruction"""
         try:
-            if hasattr(self, "tmp_dir") and os.path.exists(self.tmp_dir):
-                import shutil
-
-                shutil.rmtree(self.tmp_dir)
-            self.image_cache.clear()
+            self._cleanup_resources()
         except Exception as e:
             logger.exception(f"Error cleaning up temporary files: {e}")
 
 
-class ClipHistoryWidget(ButtonWidget, PopoverMixin):
+class ClipBoardWidget(ButtonWidget, PopoverMixin):
     """A widget to display and manage clipboard history."""
 
     def __init__(self, **kwargs):
-        super().__init__(name="cliphist", **kwargs)
+        super().__init__(name="clipboard", **kwargs)
 
         self.container_box.add(
             nerd_font_icon(
-                icon=self.config.get("icon", "󰕸"),
+                icon=self.config.get("icon"),
                 props={"style_classes": ["panel-font-icon"]},
             )
         )
@@ -681,7 +746,7 @@ class ClipHistoryWidget(ButtonWidget, PopoverMixin):
         if self.config.get("label", True):
             self.container_box.add(Label(label="Clip", style_classes=["panel-text"]))
 
-        if self.config.get("tooltip", False):
+        if self.config.get("tooltip", False) and self.tooltips_enabled:
             self.set_tooltip_text("Clipboard History")
 
-        self.setup_popover(ClipHistoryMenu)
+        self.setup_popover(lambda: ClipHistoryMenu(parent=self))

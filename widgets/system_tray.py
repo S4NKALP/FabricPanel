@@ -1,23 +1,23 @@
-import os
-
-import gi
 from fabric.system_tray.service import SystemTray as SystemTrayService
 from fabric.system_tray.service import SystemTrayItem as SystemTrayItemService
 from fabric.utils import (
+    Gdk,
+    GdkPixbuf,
+    GLib,
+    Gtk,
     bulk_connect,
     logger,
+    os,
 )
 from fabric.widgets.box import Box
 from fabric.widgets.grid import Grid
 from fabric.widgets.image import Image
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 
 from shared.buttons import HoverButton
+from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
-from utils.icons import text_icons
+from utils.icons import get_text_icon
 from utils.widget_utils import nerd_font_icon
-
-gi.require_versions({"Gtk": "3.0", "GdkPixbuf": "2.0", "Gdk": "3.0"})
 
 
 class BaseSystemTray:
@@ -45,6 +45,14 @@ class BaseSystemTray:
             else:
                 icon_name = item.icon_name
                 icon_theme = item.icon_theme
+
+                # Some tray items expose no icon name; use stable fallback.
+                if not icon_name:
+                    return Gtk.IconTheme.get_default().load_icon(
+                        "image-missing",
+                        icon_size,
+                        Gtk.IconLookupFlags.FORCE_SIZE,
+                    )
 
                 logger.info(
                     f"""[SystemTray] Resolving icon: {icon_name}, size: {icon_size},
@@ -79,7 +87,7 @@ class BaseSystemTray:
                             icon_size,
                             Gtk.IconLookupFlags.FORCE_SIZE,
                         )
-        except GLib.Error:
+        except (GLib.Error, TypeError, ValueError):
             # Fallback to 'image-missing' icon
             return Gtk.IconTheme.get_default().load_icon(
                 "image-missing",
@@ -88,9 +96,11 @@ class BaseSystemTray:
             )
 
     def _bake_item_button(self, item: SystemTrayItemService) -> HoverButton:
-        button = HoverButton(
-            style_classes=["flat"], tooltip_text=item.get_property("title")
-        )
+        button = HoverButton(style_classes=["flat"])
+
+        if self.config.get("tooltip", True) and self.tooltips_enabled:
+            button.set_tooltip_text(item.get_property("title") or "")
+
         button.connect(
             "button-press-event",
             lambda button, event: self.on_button_click(button, item, event),
@@ -154,7 +164,7 @@ class SystemTrayMenu(Box, BaseSystemTray):
             self.parent_widget.update_visibility()
 
 
-class SystemTrayWidget(ButtonWidget, BaseSystemTray):
+class SystemTrayWidget(ButtonWidget, PopoverMixin, BaseSystemTray):
     """A widget to display the system tray items."""
 
     def __init__(self, **kwargs):
@@ -167,7 +177,7 @@ class SystemTrayWidget(ButtonWidget, BaseSystemTray):
         self.icon_size = self.config.get("icon_size", 16)
 
         self.chevron_icon = nerd_font_icon(
-            icon=text_icons["chevron"]["down"],
+            icon=get_text_icon("chevron.down"),
             props={
                 "style_classes": ["panel-font-icon", "chevron-icon"],
             },
@@ -179,7 +189,11 @@ class SystemTrayWidget(ButtonWidget, BaseSystemTray):
         # Create popup menu for hidden items
         self.popup_menu = SystemTrayMenu(config=self.config, parent_widget=self)
 
-        self.popup = None
+        self.setup_popover(
+            lambda: self.popup_menu,
+            connect_clicked=False,
+            on_close_callback=self._on_popover_closed,
+        )
 
         self._watcher = SystemTrayService()
 
@@ -191,7 +205,7 @@ class SystemTrayWidget(ButtonWidget, BaseSystemTray):
             },
         )
 
-        # # Load existing items
+        # Load existing items
         for item_id in self._watcher.items:
             self.on_item_added(self._watcher, item_id)
 
@@ -201,31 +215,22 @@ class SystemTrayWidget(ButtonWidget, BaseSystemTray):
         # Initial visibility check
         self.update_visibility()
 
+    def _on_popover_closed(self, *_):
+        self.remove_style_class("active")
+        self.chevron_icon.set_label(get_text_icon("chevron.down"))
+
     # show or hide the popup menu
     def on_click(self, *_):
-        if self.popup is None:
-            from shared.popover import Popover
-
-            self.popup = Popover(
-                content=self.popup_menu,
-                point_to=self,
-            )
-            self.popup.connect(
-                "popover-closed", lambda *_: self.remove_style_class("active")
-            )
-
-        visible = self.popup.get_visible()
+        visible = self._popup is not None and self._popup.get_visible()
 
         self.toggle_css_class("active", not visible)
 
         if visible:
-            self.popup.hide()
-            self.chevron_icon.set_label(text_icons["chevron"]["down"])
-
+            self.hide_popover()
+            self.chevron_icon.set_label(get_text_icon("chevron.down"))
         else:
-            self.popup.open()
-            self.chevron_icon.set_label(text_icons["chevron"]["up"])
-            self.add_style_class("active")
+            self.show_popover()
+            self.chevron_icon.set_label(get_text_icon("chevron.up"))
 
     def update_visibility(self):
         """Update widget visibility based on configuration and item count."""

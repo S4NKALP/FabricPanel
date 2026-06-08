@@ -1,41 +1,46 @@
 @use "theme";
 @use "common";
 @use "variable";
+@use "sass:color";
 
-$workspace-transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+$workspace-transition:
+  padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
   background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
 /** workspace switcher widget */
 
 #workspaces {
+  @include common.nerd-icon(
+    variable.$bar-widgets-workspaces-icon_size,
+    variable.$bar-widgets-workspaces-spacing
+  );
 
-  .panel-font-icon {
-    font-size: 1.2rem;
-  }
-
-#workspaces_widget {
+  #workspaces_widget {
     font-weight: 700;
-    padding: .19em 1em;
-    border: if(variable.$bar-widgets-workspaces-border-enabled, variable.$border, none);
-    border-radius: variable.$bar-widgets-workspaces-border-radius;
-    border-width: variable.$bar-widgets-workspaces-border-width;
 
-    &>button {
-      padding: variable.$bar-widgets-workspaces-pill-height variable.$bar-widgets-workspaces-pill-width;
+    @include common.widget_border(
+      variable.$bar-widgets-workspaces-border-radius,
+      variable.$bar-widgets-workspaces-border-enabled,
+      variable.$bar-widgets-workspaces-border-width
+    );
+
+    & > button {
+      padding: variable.$bar-widgets-workspaces-pill-height
+        variable.$bar-widgets-workspaces-pill-width;
       transition: $workspace-transition;
       border-radius: variable.$radius-large;
-      background-color: theme.$background;
+      background-color: color.adjust(theme.$accent-orange, $alpha: -0.2);
 
       label {
-        color: theme.$text-main;
+        color: theme.$background-dark;
         transition: inherit;
       }
 
       &:hover {
-        background-color: theme.$ws-hover;
+        background-color: theme.$accent-teal;
 
         label {
-          color: theme.$background;
+          color: theme.$background-dark;
         }
       }
 
@@ -48,36 +53,24 @@ $workspace-transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         border: if(variable.$bar-widgets-workspaces-pill-border-enabled, variable.$border, none);
         border-radius: variable.$bar-widgets-workspaces-pill-border-radius;
         border-width: variable.$bar-widgets-workspaces-pill-border-width;
-
-
-
-      }
-
-      &.unoccupied {
-        opacity: .5;
-
-        &:hover {
-          opacity: 1;
-        }
-      }
-
-      &.occupied {
-        opacity: 1;
-        background-color: rgba(theme.$text-main, 0.15);
+        background-color: theme.$accent-purple;
 
         label {
-          color: theme.$text-main;
-          font-weight: 600;
-        }
-
-        &:hover {
-          background-color: theme.$ws-hover;
-
-          label {
-            color: theme.$background;
-          }
+          color: theme.$background-dark;
         }
       }
     }
+  }
+
+  .pill {
+    padding: 0.4em 1em;
+  }
+
+  .numbered {
+    padding: 0.19em 1em;
+  }
+
+  .icon {
+    padding: 0.4em;
   }
 }

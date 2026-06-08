@@ -13,8 +13,37 @@ from utils.config import widget_config
 class BaseWidget(Widget):
     """A base widget class that can be extended for custom widgets."""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    @staticmethod
+    def _merge_style_classes(
+        defaults: list[str],
+        style_classes: str | Iterable[str] | None,
+    ) -> list[str]:
+        merged = list(defaults)
+        if style_classes is None:
+            return merged
+
+        if isinstance(style_classes, str):
+            merged.append(style_classes)
+        else:
+            merged.extend(style_classes)
+        return merged
+
+    def _init_widget_settings(self, widget_name: str) -> None:
+        self.config: dict = widget_config.get("widgets", {}).get(widget_name, {})
+        self.general_config: dict = widget_config.get("general", {})
+        self.tooltips_enabled = self.general_config.get("tooltips", True)
+
+    def _connect_hover_reveal(self) -> None:
+        if not self.config.get("hover_reveal", True):
+            return
+
+        bulk_connect(
+            self,
+            {
+                "enter-notify-event": self._toggle_revealer,
+                "leave-notify-event": self._toggle_revealer,
+            },
+        )
 
     def toggle(self):
         """Toggle the visibility of the bar."""
@@ -24,10 +53,17 @@ class BaseWidget(Widget):
             self.show()
 
     def toggle_css_class(self, class_name: str | Iterable[str], condition: bool):
-        if condition:  # TODO: check if the style is there before applying again
+        if condition and self.get_style_context().has_class(class_name):
             self.add_style_class(class_name)
         else:
             self.remove_style_class(class_name)
+
+    def _toggle_revealer(self, *_):
+        if hasattr(self, "revealer"):
+            self.revealer.set_reveal_child(not self.revealer.get_reveal_child())
+
+    def set_active_style(self, action: bool, *_) -> None:
+        self.set_style_classes("") if not action else self.set_style_classes("active")
 
 
 class BaseWindow(Window, BaseWidget):
@@ -41,13 +77,7 @@ class BoxWidget(Box, BaseWidget):
     """A container for box widgets."""
 
     def __init__(self, spacing=None, style_classes=None, **kwargs):
-        # Handle style classes
-        all_styles = ["panel-box"]
-        if style_classes:
-            if isinstance(style_classes, str):
-                all_styles.append(style_classes)
-            else:
-                all_styles.extend(style_classes)
+        all_styles = self._merge_style_classes(["panel-box"], style_classes)
 
         super().__init__(
             spacing=4 if spacing is None else spacing,
@@ -56,7 +86,7 @@ class BoxWidget(Box, BaseWidget):
         )
 
         widget_name = kwargs.get("name", "box")
-        self.config = widget_config.get("widgets", {}).get(widget_name, {})
+        self._init_widget_settings(widget_name)
 
 
 class EventBoxWidget(EventBox, BaseWidget):
@@ -69,25 +99,15 @@ class EventBoxWidget(EventBox, BaseWidget):
         )
 
         widget_name = kwargs.get("name", "eventbox")
-        self.config: dict = widget_config.get("widgets", {}).get(widget_name, {})
-        self.box = Box(style_classes=["panel-box"])
+        self._init_widget_settings(widget_name)
+        self.container_box = Box(name="widget-container", style_classes=["panel-box"])
         self.add(
-            self.box,
+            self.container_box,
         )
+        self._connect_hover_reveal()
+        from utils.widget_utils import setup_cursor_hover
 
-        if self.config.get("hover_reveal", True):
-            # Connect to enter and leave events to toggle the revealer
-            bulk_connect(
-                self,
-                {
-                    "enter-notify-event": self._toggle_revealer,
-                    "leave-notify-event": self._toggle_revealer,
-                },
-            )
-
-    def _toggle_revealer(self, *_):
-        if hasattr(self, "revealer"):
-            self.revealer.set_reveal_child(not self.revealer.get_reveal_child())
+        setup_cursor_hover(self)
 
 
 class ButtonWidget(Button, BaseWidget):
@@ -100,21 +120,11 @@ class ButtonWidget(Button, BaseWidget):
         )
 
         widget_name = kwargs.get("name", "button")
-        self.config: dict = widget_config.get("widgets", {}).get(widget_name, {})
+        self._init_widget_settings(widget_name)
 
-        self.container_box = Box(style_classes=["box"], spacing=6)
+        self.container_box = Box(style_classes=["box"])
         self.add(self.container_box)
-
-        if self.config.get("hover_reveal", True):
-            # Connect to enter and leave events to toggle the revealer
-
-            bulk_connect(
-                self,
-                {
-                    "enter-notify-event": self._toggle_revealer,
-                    "leave-notify-event": self._toggle_revealer,
-                },
-            )
+        self._connect_hover_reveal()
 
         self.connect(
             "state-flags-changed",
@@ -125,24 +135,12 @@ class ButtonWidget(Button, BaseWidget):
             ),
         )
 
-    def _toggle_revealer(self, *_):
-        if hasattr(self, "revealer"):
-            self.revealer.set_reveal_child(not self.revealer.get_reveal_child())
-
 
 class WidgetGroup(BoxWidget):
     """A group of widgets that can be managed and styled together."""
 
     def __init__(self, children=None, spacing=4, style_classes=None, **kwargs):
-        # Build our list of CSS classes
-        css_classes = ["panel-module-group"]
-
-        # Add any custom style classes
-        if style_classes:
-            if isinstance(style_classes, str):
-                css_classes.append(style_classes)
-            elif isinstance(style_classes, list):
-                css_classes.extend(style_classes)
+        css_classes = self._merge_style_classes(["panel-module-group"], style_classes)
 
         super().__init__(
             spacing=spacing,

@@ -1,55 +1,114 @@
+import contextlib
 import importlib
 from numbers import Number
 from time import sleep
 from typing import Literal
 
-import cairo  # For rendering the drag preview
-import gi
 import psutil
-from fabric.utils import bulk_connect
+from fabric.utils import Gdk, GdkPixbuf, GLib, bulk_connect, cairo
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from fabric.widgets.scale import ScaleMark
 from fabric.widgets.widget import Widget
-from gi.repository import Gdk, GdkPixbuf, GLib
 
+from shared.animated.circularprogress import AnimatedCircularProgressBar
 from shared.animated.scale import AnimatedScale
 
 from .config import widget_config
-from .icons import symbolic_icons, text_icons
+from .icons import get_text_icon, symbolic_icons
 
 storage_config = widget_config.get("widgets", {}).get("storage", {})
 
-
-gi.require_versions({"Gtk": "3.0", "Gdk": "3.0", "GdkPixbuf": "2.0"})
-
-
-# Function to get the system stats using psutil
-def stats_poll(fabricator):
-    while True:
-        yield {
-            "cpu_usage": round(psutil.cpu_percent(), 1),
-            "cpu_freq": psutil.cpu_freq(),
-            "temperature": psutil.sensors_temperatures(),
-            "ram_usage": round(psutil.virtual_memory().percent, 1),
-            "memory": psutil.virtual_memory(),
-            "disk": psutil.disk_usage(storage_config.get("path", "/")),
-        }
-        sleep(1)
-
+UTIL_FAST_POLL_SECONDS = 1
+UTIL_SLOW_POLL_TICKS = 5
 
 # Lazy-loaded stats fabricator - only created when first stat widget is used
 _util_fabricator = None
+_util_polling_enabled = False
+_util_subscribers = 0
+_util_changed_handler_ids: set[int] = set()
+
+
+# Function to get the system stats using psutil
+def stats_poll(*_):
+    cpu_freq = None
+    temperature = {}
+    disk = psutil.disk_usage(storage_config.get("path", "/"))
+    ticks = 0
+
+    while _util_polling_enabled:
+        if ticks % UTIL_SLOW_POLL_TICKS == 0:
+            cpu_freq = psutil.cpu_freq()
+            temperature = psutil.sensors_temperatures()
+            disk = psutil.disk_usage(storage_config.get("path", "/"))
+
+        virtual_memory = psutil.virtual_memory()
+        yield {
+            "cpu_usage": round(psutil.cpu_percent(), 1),
+            "cpu_freq": cpu_freq,
+            "temperature": temperature,
+            "ram_usage": round(virtual_memory.percent, 1),
+            "memory": virtual_memory,
+            "disk": disk,
+        }
+        ticks += 1
+        sleep(UTIL_FAST_POLL_SECONDS)
+
+
+def _stop_util_fabricator() -> None:
+    global _util_fabricator, _util_polling_enabled, _util_subscribers
+
+    _util_polling_enabled = False
+
+    if _util_fabricator is not None:
+        destroy = getattr(_util_fabricator, "destroy", None)
+        if callable(destroy):
+            destroy()
+
+    _util_fabricator = None
+    _util_subscribers = 0
+    _util_changed_handler_ids.clear()
 
 
 def get_util_fabricator():
     """Get the stats fabricator, creating it on first access."""
-    global _util_fabricator
+    global _util_fabricator, _util_polling_enabled
     if _util_fabricator is None:
         from fabric import Fabricator
 
+        _util_polling_enabled = True
         _util_fabricator = Fabricator(poll_from=stats_poll, stream=True)
     return _util_fabricator
+
+
+def connect_util_fabricator_changed(callback) -> int:
+    """Connect to util fabricator changed signal with lifecycle tracking."""
+    global _util_subscribers
+
+    handler_id = get_util_fabricator().connect("changed", callback)
+    _util_changed_handler_ids.add(handler_id)
+    _util_subscribers += 1
+    return handler_id
+
+
+def disconnect_util_fabricator_changed(handler_id: int | None) -> None:
+    """Disconnect a changed signal handler and stop poller when unused."""
+    global _util_subscribers
+
+    if handler_id is None:
+        return
+
+    fabricator = _util_fabricator
+    if fabricator is not None:
+        with contextlib.suppress(KeyError, AttributeError, TypeError):
+            fabricator.disconnect(handler_id)
+
+    if handler_id in _util_changed_handler_ids:
+        _util_changed_handler_ids.discard(handler_id)
+        _util_subscribers = max(0, _util_subscribers - 1)
+
+    if _util_subscribers == 0:
+        _stop_util_fabricator()
 
 
 # Backward compatibility - lazy proxy for util_fabricator
@@ -146,7 +205,7 @@ def lazy_load_widget(widget_name: str, widgets_list):
 # Function to create a text icon label
 def nerd_font_icon(icon: str, props=None, name="nerd-icon") -> Label:
     label_props = {
-        "label": str(icon),  # Directly use the provided icon name
+        "markup": str(icon),  # Directly use the provided icon name
         "name": name,
         "h_align": "center",  # Align horizontally
         "v_align": "center",  # Align vertically
@@ -199,22 +258,22 @@ def get_bar_graph(usage: Number | str) -> str:
 def get_brightness_icon_name(level: int) -> dict[Literal["icon_text", "icon"], str]:
     if level <= 0:
         return {
-            "icon_text": text_icons["brightness"]["off"],
+            "icon_text": get_text_icon("brightness.off"),
             "icon": symbolic_icons["brightness"]["off"],
         }
 
     if level <= 32:
         return {
-            "icon_text": text_icons["brightness"]["low"],
+            "icon_text": get_text_icon("brightness.low"),
             "icon": symbolic_icons["brightness"]["low"],
         }
     if level <= 66:
         return {
-            "icon_text": text_icons["brightness"]["medium"],
+            "icon_text": get_text_icon("brightness.medium"),
             "icon": symbolic_icons["brightness"]["medium"],
         }
     return {
-        "icon_text": text_icons["brightness"]["high"],
+        "icon_text": get_text_icon("brightness.high"),
         "icon": symbolic_icons["brightness"]["high"],
     }
 
@@ -271,6 +330,31 @@ def get_audio_icon_name(
         level = "overamplified"
 
     return {
-        "icon_text": text_icons["volume"][level],
+        "icon_text": get_text_icon(f"volume.{level}"),
         "icon": symbolic_icons["audio"]["volume"][level],
     }
+
+
+def create_progress(
+    value=0,
+    start_angle=150,
+    end_angle=390,
+    child=None,
+    size=(22, 20),
+    line_width=2,
+    name="circular-progress",
+    **kwargs,
+):
+
+    return AnimatedCircularProgressBar(
+        name=name,
+        style_classes=["stat-circle"],
+        line_style="round",
+        line_width=line_width,
+        start_angle=start_angle,
+        end_angle=end_angle,
+        child=child,
+        size=size,
+        value=value,
+        **kwargs,
+    )
