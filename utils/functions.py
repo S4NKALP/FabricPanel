@@ -3,6 +3,7 @@ import contextlib
 import ctypes
 import html
 import json
+import re
 import shutil
 import string
 import subprocess
@@ -240,6 +241,168 @@ def read_toml_file(file_path: str) -> Optional[dict]:
     except Exception as e:
         logger.exception(f"Failed to read TOML file {file_path}: {e}")
         return None
+
+
+def _resolve_schema_ref(schema_node: Any, schema_root: dict) -> Any:
+    """Resolve local JSON schema references."""
+
+    while isinstance(schema_node, dict) and "$ref" in schema_node:
+        ref = schema_node.get("$ref")
+        if not isinstance(ref, str) or not ref.startswith("#/"):
+            break
+
+        resolved: Any = schema_root
+        try:
+            for part in ref[2:].split("/"):
+                resolved = resolved[part]
+        except (KeyError, TypeError):
+            break
+
+        schema_node = resolved
+
+    return schema_node
+
+
+def _schema_type_matches(value: Any, schema_type: Any) -> bool:
+    """Return whether a value matches a JSON schema type declaration."""
+
+    if schema_type is None:
+        return True
+
+    schema_types = {schema_type} if isinstance(schema_type, str) else set(schema_type)
+
+    if value is None:
+        return "null" in schema_types
+    if isinstance(value, bool):
+        return "boolean" in schema_types
+    if isinstance(value, str):
+        return "string" in schema_types
+    if isinstance(value, dict):
+        return "object" in schema_types
+    if isinstance(value, list):
+        return "array" in schema_types
+    if isinstance(value, int):
+        return "integer" in schema_types or "number" in schema_types
+    if isinstance(value, float):
+        return "number" in schema_types
+
+    return False
+
+
+def _format_config_value(value: Any) -> str:
+    """Return a colored representation of a config value for error messages."""
+
+    return f"{Colors.ERROR}{value!r}{Colors.RESET}"
+
+
+def _format_allowed_values(values: list[Any]) -> str:
+    """Return a colored, compact list of allowed config values."""
+
+    return ", ".join(f"{Colors.OKGREEN}{item!r}{Colors.RESET}" for item in values)
+
+
+def _validate_schema_enums(
+    value: Any,
+    schema_node: Any,
+    schema_root: dict,
+    path: str,
+) -> None:
+    """Validate enum and pattern constraints from a JSON schema node."""
+
+    schema_node = _resolve_schema_ref(schema_node, schema_root)
+    if not isinstance(schema_node, dict):
+        return
+
+    any_of = schema_node.get("anyOf")
+    if isinstance(any_of, list):
+        errors: list[str] = []
+        for candidate in any_of:
+            try:
+                _validate_schema_enums(value, candidate, schema_root, path)
+                break
+            except ValueError as exc:
+                errors.append(str(exc))
+        else:
+            raise ValueError(
+                errors[0] if errors else f"{path}: invalid value {value!r}"
+            )
+        return
+
+    one_of = schema_node.get("oneOf")
+    if isinstance(one_of, list):
+        matches = 0
+        last_error = None
+        for candidate in one_of:
+            try:
+                _validate_schema_enums(value, candidate, schema_root, path)
+                matches += 1
+            except ValueError as exc:
+                last_error = str(exc)
+
+        if matches != 1:
+            raise ValueError(last_error or f"{path}: invalid value {value!r}")
+        return
+
+    schema_type = schema_node.get("type")
+    if not _schema_type_matches(value, schema_type):
+        return
+
+    enum_values = schema_node.get("enum")
+    if isinstance(enum_values, list) and value not in enum_values:
+        raise ValueError(
+            f"{path}: invalid enum value {_format_config_value(value)}; "
+            f"allowed: {_format_allowed_values(enum_values)}"
+        )
+
+    pattern = schema_node.get("pattern")
+    if (
+        isinstance(pattern, str)
+        and isinstance(value, str)
+        and re.fullmatch(pattern, value) is None
+    ):
+        raise ValueError(f"{path}: invalid value {_format_config_value(value)}")
+
+    if isinstance(value, dict):
+        properties = schema_node.get("properties", {})
+        if isinstance(properties, dict):
+            for key, child_schema in properties.items():
+                if key in value:
+                    child_path = f"{path}.{key}" if path else key
+                    _validate_schema_enums(
+                        value[key], child_schema, schema_root, child_path
+                    )
+
+        additional_properties = schema_node.get("additionalProperties")
+        if isinstance(additional_properties, dict):
+            for key, child_value in value.items():
+                if key not in properties:
+                    child_path = f"{path}.{key}" if path else key
+                    _validate_schema_enums(
+                        child_value, additional_properties, schema_root, child_path
+                    )
+
+    if isinstance(value, list):
+        items = schema_node.get("items")
+        if isinstance(items, dict):
+            for index, item in enumerate(value):
+                item_path = f"{path}[{index}]" if path else f"[{index}]"
+                _validate_schema_enums(item, items, schema_root, item_path)
+        elif isinstance(items, list):
+            for index, item_schema in enumerate(items):
+                if index < len(value):
+                    item_path = f"{path}[{index}]" if path else f"[{index}]"
+                    _validate_schema_enums(
+                        value[index], item_schema, schema_root, item_path
+                    )
+
+
+def validate_config_enums(config_data: dict, schema_file_path: str) -> None:
+    """Raise when a config value violates an enum or pattern constraint."""
+
+    with open(schema_file_path, "r") as file:
+        schema = json.load(file)
+
+    _validate_schema_enums(config_data, schema, schema, "config")
 
 
 @run_in_thread

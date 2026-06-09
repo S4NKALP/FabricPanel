@@ -2,13 +2,14 @@ import json
 
 from fabric.utils import get_relative_path, logger, os
 
-from .constants import DEFAULT_CONFIG
+from .constants import APPLICATION_NAME, DEFAULT_CONFIG
 from .functions import (
     deep_merge,
     exclude_keys,
     flatten_dict,
     read_toml_file,
     run_in_thread,
+    validate_config_enums,
     validate_widgets,
 )
 from .widget_settings import BarConfig
@@ -64,7 +65,13 @@ class TsumikiConfig:
             logger.warning("[CONFIG] Failed to parse config.toml, using defaults")
             parsed_data = {}
 
-        validate_widgets(parsed_data, DEFAULT_CONFIG)
+        try:
+            validate_config_enums(
+                parsed_data, f"{self.root_dir}/{APPLICATION_NAME}.schema.json"
+            )
+            validate_widgets(parsed_data, DEFAULT_CONFIG)
+        except (ValueError, FileNotFoundError) as exc:
+            raise SystemExit(f"[CONFIG] {exc}") from None
 
         # Merge configuration with defaults
         for key, default_value in DEFAULT_CONFIG.items():

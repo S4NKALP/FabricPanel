@@ -258,7 +258,7 @@
 								"low_threshold",
 								"full_battery",
 								"low_battery",
-								"charging",
+								"charging"
 							]
 						}
 					},
@@ -2536,7 +2536,7 @@
 									"type": "integer",
 									"description": "Maximum total number of notifications to keep across all apps",
 									"default": 200
-								},
+								}
 							}
 						},
 						"respect_expire": {

@@ -55,7 +55,7 @@ class BatteryWidget(ButtonWidget):
                 self.set_visible(False)
             self.set_tooltip_text(f"{get_text_icon('battery.low')} No battery present")
             if self.config.get("label", True):
-                self.battery_label.set_text("N/A")
+                self.battery_icon.set_text("N/A")
             return True
 
         battery_percent = (

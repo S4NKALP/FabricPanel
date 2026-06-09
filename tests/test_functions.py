@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from utils.functions import (
     celsius_to_fahrenheit,
@@ -19,6 +20,7 @@ from utils.functions import (
     tint_color,
     unique_list,
     uptime,
+    validate_config_enums,
 )
 
 
@@ -168,6 +170,14 @@ class FunctionsTest(unittest.TestCase):
         # Tint factor 0.5 => halfway to white
         self.assertEqual(tint_color((0, 0, 0), 0.5), (127, 127, 127))
         self.assertEqual(tint_color((100, 100, 100), 0.5), (177, 177, 177))
+
+    def test_validate_config_enums_rejects_invalid_value(self):
+        schema_path = Path(__file__).resolve().parents[1] / "tsumiki.schema.json"
+
+        with self.assertRaisesRegex(ValueError, r"config\.modules\.bar\.location"):
+            validate_config_enums(
+                {"modules": {"bar": {"location": "middle"}}}, str(schema_path)
+            )
 
 
 if __name__ == "__main__":
