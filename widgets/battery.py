@@ -21,7 +21,36 @@ class BatteryWidget(ButtonWidget):
         self.full_battery_level = self.config.get("full_battery_level", 100)
         self.hide_percent_when_full = self.config.get("hide_percent_when_full", True)
         self.label_format = self.config.get("label_format", "{icon} {percent}")
-        self.glyphs = self.config.get("icons", ["", "", "", "", ""])
+
+        # Battery levels (empty -> full)
+        self.battery_icons = [
+            "󰂎",  # 0%
+            "󰁺",  # 10%
+            "󰁻",  # 20%
+            "󰁼",  # 30%
+            "󰁽",  # 40%
+            "󰁾",  # 50%
+            "󰁿",  # 60%
+            "󰂀",  # 70%
+            "󰂁",  # 80%
+            "󰂂",  # 90%
+            "󰁹",  # 100%
+        ]
+
+        # Charging battery levels (empty -> full)
+        self.charging_icons = [
+            "󰢜",  # 0%
+            "󰢝",  # 10%
+            "󰂆",  # 20%
+            "󰂇",  # 30%
+            "󰂈",  # 40%
+            "󰢞",  # 50%
+            "󰂉",  # 60%
+            "󰢞",  # 70%
+            "󰂊",  # 80%
+            "󰂋",  # 90%
+            "󰂅",  # 100%
+        ]
 
         self.battery_icon = nerd_font_icon(
             icon=get_text_icon("battery.charging"),
@@ -76,11 +105,13 @@ class BatteryWidget(ButtonWidget):
             else self.client.get_property("TimeToEmpty")
         ) or 0
 
-        glyph = self._map_glyph(battery_percent, is_charging)
+        glyph = self._map_glyphs(battery_percent, is_charging)
 
         formatted_time = format_seconds_to_hours_minutes(time_remaining)
-        percent_color = (
-            "#31f491" if is_charging else self._get_color_for_percent(battery_percent)
+        percent_color = self._get_color_for_percent(battery_percent, is_charging)
+        icon_markup = f'<span foreground="{percent_color}">{glyph}</span>'
+        percent_markup = (
+            f'<span foreground="{percent_color}" size="8800">{battery_percent}%</span>'
         )
 
         label_format = self.label_format
@@ -93,19 +124,17 @@ class BatteryWidget(ButtonWidget):
             )
 
         label_text = label_format.format(
-            icon=glyph,
+            icon=icon_markup,
             time_remaining=formatted_time,
-            percent=f"{battery_percent}%",
+            percent=percent_markup,
         )
 
-        self.battery_icon.set_markup(
-            f'<span foreground="{percent_color}">{label_text}</span>'
-        )
+        self.battery_icon.set_markup(label_text)
 
         # Update the tooltip with the battery status details if enabled
         if self.config.get("tooltip", False) and self.tooltips_enabled:
             status_text = (
-                "󱠴 Status: Charging" if is_charging else "󱠴 Status: Discharging"
+                "󰂄 Status: Charging" if is_charging else "󱠴 Status: Discharging"
             )
             tool_tip_text = (
                 f"󱐋 Energy : {round(energy, 2)} Wh\n Temperature: {temperature}°C"
@@ -218,16 +247,18 @@ class BatteryWidget(ButtonWidget):
             elif percentage > threshold or is_charging:
                 self.low_battery_notified = False
 
-    def _map_glyph(self, percent: float, charging: bool) -> str:
-        if charging:
-            return get_text_icon("battery.charging")
+    def _map_glyphs(self, percent, charging=False):
+        idx = min(10, max(0, percent // 10))
 
-        index = int(percent // 20)
-        index = min(index, len(self.glyphs) - 1)
-        return self.glyphs[index]
+        icons = self.charging_icons if charging else self.battery_icons
 
-    def _get_color_for_percent(self, percent: float) -> str:
+        return icons[idx]
+
+    def _get_color_for_percent(self, percent: float, charging=False) -> str:
         """Return a pastel gradient color from red to green based on percent."""
+
+        if charging:
+            return "#31f491"  # pastel green for charging
 
         percent = max(0, min(percent, 100)) / 100.0
 
