@@ -445,6 +445,7 @@ class PlayerBox(Box):
 
     def on_player_next(self, *_):
         self.angle_direction = 1
+        self.seek_bar.set_value(0)
 
         from shared.animator import Animator
 
@@ -463,6 +464,7 @@ class PlayerBox(Box):
 
     def on_player_prev(self, *_):
         self.angle_direction = -1
+        self.seek_bar.set_value(0)
         self.art_animator.play()
         self.player.previous()
 
