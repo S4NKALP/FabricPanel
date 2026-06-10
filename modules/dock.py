@@ -156,33 +156,6 @@ class DotIndicator(Gtk.DrawingArea):
 class AppBar(Box):
     """A simple app bar widget for the dock."""
 
-    __slots__ = (
-        "_active_address",
-        "_app_groups",
-        "_app_util",
-        "_clients_by_address",
-        "_dragging_box",
-        "_group_apps",
-        "_hyprland_connection",
-        "_is_dragging",
-        "_parent",
-        "_pinned_app_buttons",
-        "_running_app_boxes",
-        "_running_app_count",
-        "_sync_in_progress",
-        "_sync_scheduled_id",
-        "app_launcher",
-        "config",
-        "icon_resolver",
-        "icon_size",
-        "menu",
-        "orientation",
-        "pinned_apps",
-        "pinned_apps_container",
-        "separator",
-        "truncation_size",
-    )
-
     @property
     def app_util(self) -> AppUtils:
         """Lazy-load AppUtils on first access."""
@@ -299,23 +272,12 @@ class AppBar(Box):
         data = getattr(event, "data", None)
         if data is None:
             return None
-
-        if isinstance(data, str):
-            parts = [part.strip() for part in data.split(",") if part.strip()]
-        elif isinstance(data, (list, tuple)):
-            parts = []
-            for item in data:
-                if item is None:
-                    continue
-                if isinstance(item, str):
-                    parts.append(item.strip())
-                else:
-                    parts.append(str(item).strip())
-        else:
+        if isinstance(data, (list, tuple)):
+            data = ",".join(str(x) for x in data if x is not None)
+        if not isinstance(data, str):
             return None
-
-        for token in reversed(parts):
-            addr = normalize_address(token)
+        for token in reversed(data.split(",")):
+            addr = normalize_address(token.strip())
             if addr:
                 return addr
         return None
@@ -339,7 +301,12 @@ class AppBar(Box):
                     )
                     group["button"].set_tooltip_text(active.get_title())
         else:
-            self._apply_ungrouped_active_styles()
+            for entry in self._running_app_boxes.values():
+                client = entry["client"]
+                if client.get_activated():
+                    entry["button"].add_style_class("active")
+                else:
+                    entry["button"].remove_style_class("active")
 
     def _on_active_window_event(self, *_):
         if not self._clients_by_address:
@@ -415,23 +382,6 @@ class AppBar(Box):
             clients.append(client)
         return clients
 
-    def _capture_client_snapshot(
-        self,
-    ) -> tuple[list[NativeClient], dict[str, NativeClient]]:
-        clients = self._list_visible_clients()
-        clients_by_address = {
-            client.get_address_str(): client
-            for client in clients
-            if client.get_address_str()
-        }
-        return clients, clients_by_address
-
-    def _reconcile_clients(self, clients: list[NativeClient]):
-        if self._group_apps:
-            self._sync_grouped_clients(clients)
-        else:
-            self._sync_ungrouped_clients(clients)
-
     def _sync_clients(self):
         if self._sync_in_progress:
             self._schedule_sync_clients()
@@ -439,9 +389,14 @@ class AppBar(Box):
 
         self._sync_in_progress = True
         try:
-            clients, clients_by_address = self._capture_client_snapshot()
-            self._clients_by_address = clients_by_address
-            self._reconcile_clients(clients)
+            clients = self._list_visible_clients()
+            self._clients_by_address = {
+                c.get_address_str(): c for c in clients if c.get_address_str()
+            }
+            if self._group_apps:
+                self._sync_grouped_clients(clients)
+            else:
+                self._sync_ungrouped_clients(clients)
         finally:
             self._sync_in_progress = False
 
@@ -631,17 +586,6 @@ class AppBar(Box):
 
         self.menu.show_all()
 
-    def _show_menu(self, client: NativeClient):
-        """Show the context menu for a single client."""
-        title = truncate(
-            client.get_title() or client.get_app_id() or "", self.truncation_size
-        )
-        menu_spec = {
-            "instances": [{"label": title, "client": client}],
-            "common_items": self._build_common_menu_items(client),
-        }
-        self._render_context_menu(menu_spec)
-
     def _save_pinned_apps(self):
         """Save pinned apps to file."""
         write_json_file(PINNED_APPS_FILE, self.pinned_apps)
@@ -680,50 +624,6 @@ class AppBar(Box):
         except Exception:
             return None
 
-    def _build_group_ui(self, app_id: str, clients: list[NativeClient]) -> dict:
-        """Build grouped app UI widgets and return group state."""
-        is_vertical = self.orientation == "vertical"
-        indicator_orientation = "vertical" if is_vertical else "horizontal"
-
-        client_image = Image(size=self.icon_size)
-        indicator = MultiDotIndicator(
-            count=max(1, len(clients)),
-            size=5,
-            spacing=3,
-            orientation=indicator_orientation,
-        )
-        client_button = self._bake_button(image=client_image)
-
-        if is_vertical:
-            box = Box(
-                orientation="horizontal",
-                spacing=0,
-                h_align="center",
-                children=[
-                    Box(v_align="center", children=[indicator]),
-                    client_button,
-                ],
-            )
-        else:
-            box = Box(
-                orientation="vertical",
-                spacing=4,
-                v_align="center",
-                children=[
-                    client_button,
-                    Box(h_align="center", children=[indicator]),
-                ],
-            )
-
-        box._dock_app_id = app_id
-        return {
-            "box": box,
-            "button": client_button,
-            "indicator": indicator,
-            "image": client_image,
-            "clients": clients,
-        }
-
     def _activate_group(self, app_id: str):
         clients = self._app_groups.get(app_id, {}).get("clients", [])
         if len(clients) == 1:
@@ -731,24 +631,50 @@ class AppBar(Box):
             return
         if len(clients) <= 1:
             return
+        active_idx = next((i for i, c in enumerate(clients) if c.get_activated()), -1)
+        clients[(active_idx + 1) % len(clients)].activate()
 
-        active_idx = -1
-        for i, client in enumerate(clients):
-            if client.get_activated():
-                active_idx = i
-                break
-        next_idx = (active_idx + 1) % len(clients)
-        clients[next_idx].activate()
+    def _create_app_group(self, app_id: str, clients: list[NativeClient]):
+        is_vertical = self.orientation == "vertical"
+        indicator = MultiDotIndicator(
+            count=max(1, len(clients)),
+            size=5,
+            spacing=3,
+            orientation="vertical" if is_vertical else "horizontal",
+        )
+        client_image = Image(size=self.icon_size)
+        client_button = self._bake_button(image=client_image)
 
-    def _wire_group_events(self, app_id: str, group: dict):
-        client_button = group["button"]
+        if is_vertical:
+            box = Box(
+                orientation="horizontal",
+                spacing=0,
+                h_align="center",
+                children=[Box(v_align="center", children=[indicator]), client_button],
+            )
+        else:
+            box = Box(
+                orientation="vertical",
+                spacing=4,
+                v_align="center",
+                children=[client_button, Box(h_align="center", children=[indicator])],
+            )
+
+        box._dock_app_id = app_id
+        self._app_groups[app_id] = {
+            "box": box,
+            "button": client_button,
+            "indicator": indicator,
+            "image": client_image,
+            "clients": clients,
+        }
 
         def on_button_press(_widget, event):
             if event.button != 3:
                 return False
-            clients = self._app_groups.get(app_id, {}).get("clients", [])
-            if clients:
-                self._show_group_menu(app_id, clients)
+            app_clients = self._app_groups.get(app_id, {}).get("clients", [])
+            if app_clients:
+                self._show_context_menu(app_clients)
                 self.menu.popup_at_pointer(event)
             return True
 
@@ -766,32 +692,20 @@ class AppBar(Box):
             },
         )
 
-    def _wire_group_dnd(self, group: dict):
-        box = group["box"]
-        client_button = group["button"]
-        client_image = group["image"]
-
         client_button.drag_source_set(
             start_button_mask=Gdk.ModifierType.BUTTON1_MASK,
             targets=DOCK_DND_TARGET,
             actions=Gdk.DragAction.MOVE,
         )
         client_button.connect("drag-begin", self._on_drag_begin, box, client_image)
+        client_button.connect("drag-data-get", self._on_drag_data_get, app_id)
         client_button.connect("drag-end", self._on_drag_end, box)
 
         box.drag_dest_set(Gtk.DestDefaults.ALL, DOCK_DND_TARGET, Gdk.DragAction.MOVE)
         box.connect("drag-data-received", self._on_drag_data_received)
 
-    def _create_app_group(self, app_id: str, clients: list[NativeClient]):
-        """Create a new app group for the given app id."""
-        group = self._build_group_ui(app_id, clients)
-        self._app_groups[app_id] = group
-
-        self._wire_group_events(app_id, group)
-        self._wire_group_dnd(group)
         self._refresh_group_visuals(app_id)
-
-        self.add(group["box"])
+        self.add(box)
 
     def _refresh_group_visuals(self, app_id: str):
         group = self._app_groups.get(app_id)
@@ -906,63 +820,32 @@ class AppBar(Box):
             self.remove(group["box"])
             group["box"].destroy()
 
-    def _diff_ungrouped_clients(
-        self, clients: list[NativeClient]
-    ) -> tuple[list[str], list[NativeClient], list[NativeClient]]:
-        target_by_address = {}
-        for client in clients:
-            address = client.get_address_str()
-            if address:
-                target_by_address[address] = client
+    def _sync_ungrouped_clients(self, clients: list[NativeClient]):
+        self._clear_grouped_clients()
 
-        remove_addresses = [
-            address
-            for address in self._running_app_boxes
-            if address not in target_by_address
-        ]
+        target = {c.get_address_str(): c for c in clients if c.get_address_str()}
 
-        add_clients = []
-        update_clients = []
-        for address, client in target_by_address.items():
-            if address in self._running_app_boxes:
-                update_clients.append(client)
-            else:
-                add_clients.append(client)
-
-        return remove_addresses, add_clients, update_clients
-
-    def _apply_ungrouped_removals(self, remove_addresses: list[str]):
-        for address in remove_addresses:
-            entry = self._running_app_boxes.pop(address, None)
-            if not entry:
-                continue
+        for address in [a for a in list(self._running_app_boxes) if a not in target]:
+            entry = self._running_app_boxes.pop(address)
             self.remove(entry["box"])
             entry["box"].destroy()
             self._running_app_count -= 1
 
-    def _apply_ungrouped_additions(self, add_clients: list[NativeClient]):
-        for client in add_clients:
-            self._add_ungrouped_client(client)
+        for address, client in target.items():
+            if address in self._running_app_boxes:
+                entry = self._running_app_boxes[address]
+                entry["client"] = client
+                entry["image"].set_from_pixbuf(
+                    self.icon_resolver.get_icon_pixbuf(
+                        client.get_app_id(), self.icon_size
+                    )
+                )
+                entry["button"].set_tooltip_text(
+                    client.get_title() if self.config.get("tooltip", True) else None
+                )
+            else:
+                self._add_ungrouped_client(client)
 
-    def _apply_ungrouped_updates(self, update_clients: list[NativeClient]):
-        for client in update_clients:
-            address = client.get_address_str()
-            if not address:
-                continue
-
-            entry = self._running_app_boxes.get(address)
-            if not entry:
-                continue
-
-            entry["client"] = client
-            entry["image"].set_from_pixbuf(
-                self.icon_resolver.get_icon_pixbuf(client.get_app_id(), self.icon_size)
-            )
-            entry["button"].set_tooltip_text(
-                client.get_title() if self.config.get("tooltip", True) else None
-            )
-
-    def _apply_ungrouped_active_styles(self):
         for entry in self._running_app_boxes.values():
             client = entry["client"]
             if client.get_activated():
@@ -970,42 +853,29 @@ class AppBar(Box):
             else:
                 entry["button"].remove_style_class("active")
 
-    def _sync_ungrouped_clients(self, clients: list[NativeClient]):
-        self._clear_grouped_clients()
-
-        remove_addresses, add_clients, update_clients = self._diff_ungrouped_clients(
-            clients
+    def _show_context_menu(self, clients: list[NativeClient]):
+        app_id = clients[0].get_app_id() if clients else ""
+        self._render_context_menu(
+            {
+                "instances": [
+                    {
+                        "label": truncate(
+                            c.get_title() or app_id, self.truncation_size
+                        ),
+                        "client": c,
+                    }
+                    for c in clients
+                ],
+                "common_items": self._build_common_menu_items(clients[0], clients),
+            }
         )
 
-        self._apply_ungrouped_removals(remove_addresses)
-        self._apply_ungrouped_additions(add_clients)
-        self._apply_ungrouped_updates(update_clients)
-        self._apply_ungrouped_active_styles()
-
-    def _show_group_menu(self, app_id: str, clients: list):
-        """Show context menu for a grouped app (multiple windows)."""
-        menu_spec = {
-            "instances": [
-                {
-                    "label": truncate(
-                        client.get_title() or app_id,
-                        self.truncation_size,
-                    ),
-                    "client": client,
-                }
-                for client in clients
-            ],
-            "common_items": self._build_common_menu_items(clients[0], clients),
-        }
-        self._render_context_menu(menu_spec)
-
     def _on_button_press(self, widget, event, address: str):
-        """Handle button press - right click shows menu."""
         client = self._clients_by_address.get(address)
         if not client:
             return False
         if event.button == 3:
-            self._show_menu(client)
+            self._show_context_menu([client])
             self.menu.popup_at_pointer(event)
             return True
         return False
