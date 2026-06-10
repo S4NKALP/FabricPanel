@@ -108,34 +108,6 @@ class Wifi(Service):
     def toggle_wifi(self):
         self._client.wireless_set_enabled(not self._client.wireless_get_enabled())
 
-    def get_ap_security(
-        self, nm_ap: NM.AccessPoint
-    ) -> Literal["WEP", "WPA1", "WPA2", "802.1X", "unsecured"]:
-        """Parse the security flags to return a string with 'WPA2', etc."""
-        flags = nm_ap.get_flags()
-        wpa_flags = nm_ap.get_wpa_flags()
-        rsn_flags = nm_ap.get_rsn_flags()
-        sec_str = ""
-        if (
-            (flags & getattr(NM, "80211ApFlags").PRIVACY)
-            and (wpa_flags == 0)
-            and (rsn_flags == 0)
-        ):
-            sec_str += " WEP"
-        if wpa_flags != 0:
-            sec_str += " WPA1"
-        if rsn_flags != 0:
-            sec_str += " WPA2"
-        if (wpa_flags & getattr(NM, "80211ApSecurityFlags").KEY_MGMT_802_1X) or (
-            rsn_flags & getattr(NM, "80211ApSecurityFlags").KEY_MGMT_802_1X
-        ):
-            sec_str += " 802.1X"
-
-        # If there is no security use "--"
-        if sec_str == "":
-            sec_str = "unsecured"
-        return sec_str.lstrip()
-
     def scan(self):
         """Start scanning for WiFi networks and emit scanning signal"""
         if self._device:
@@ -286,6 +258,7 @@ class Wifi(Service):
         return {
             "bssid": ap.get_bssid(),
             "last_seen": ap.get_last_seen(),
+            "wpa_flags": ap.get_wpa_flags(),
             "ssid": ssid,
             "active-ap": self._ap,
             "strength": strength,
@@ -294,7 +267,12 @@ class Wifi(Service):
                 min(80, 20 * round(strength / 20)),
                 "network-wireless-no-route-symbolic",
             ),
+            "secured": self._is_ap_secured(ap),
         }
+
+    def _is_ap_secured(self, ap: NM.AccessPoint) -> bool:
+        # NM security flags are non-zero for secured networks.
+        return bool(ap.get_wpa_flags() or ap.get_rsn_flags() or ap.get_flags())
 
     @Property(object, "readable")
     def access_points(self) -> list[object]:

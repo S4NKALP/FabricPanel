@@ -1,7 +1,7 @@
 import gi
 from fabric.utils import GObject, Gtk, bulk_connect, logger
-from fabric.widgets.box import Box
 from fabric.widgets.button import Button
+from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
 
@@ -48,7 +48,7 @@ class WifiSubMenu(QuickSubMenu):
         )
 
         super().__init__(
-            title="Network",
+            title="network",
             title_icon=get_text_icon("wifi.generic"),
             scan_button=self.scan_button,
             child=self.child,
@@ -128,16 +128,49 @@ class WifiSubMenu(QuickSubMenu):
     def build_wifi_options(self):
         self.refresh_wifi_list()
 
+    def _prompt_for_password(self, ssid: str) -> str | None:
+        dialog = Gtk.Dialog(
+            title=f"Connect to {ssid}",
+            modal=True,
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Connect", Gtk.ResponseType.OK)
+        dialog.set_default_response(Gtk.ResponseType.OK)
+
+        content = dialog.get_content_area()
+        prompt_label = Gtk.Label(label=f"Enter password for {ssid}")
+        password_entry = Gtk.Entry()
+        password_entry.set_visibility(False)
+        password_entry.set_activates_default(True)
+
+        # GTK3 uses pack_start, GTK4 uses append.
+        if hasattr(content, "append"):
+            content.append(prompt_label)
+            content.append(password_entry)
+        else:
+            content.pack_start(prompt_label, False, False, 4)
+            content.pack_start(password_entry, False, False, 4)
+
+        dialog.show_all()
+        response = dialog.run()
+        password = password_entry.get_text().strip()
+        dialog.destroy()
+
+        if response != Gtk.ResponseType.OK:
+            return None
+
+        return password
+
     def make_button_from_ap(self, ap: NM.AccessPoint) -> Button:
-        security_label = ""
         ssid = ap.get("ssid")
         icon_name = ap.get("icon-name")
+        is_secured = ap.get("secured")
+        security_label = get_text_icon("ui.lock") if is_secured else ""
 
-        ap_container = Box(
+        ap_container = CenterBox(
             orientation="h",
-            spacing=8,
-            tooltip_markup=ssid,
-            style_classes=["wifi-ap-container"],
+            spacing=10,
+            h_expand=True,
         )
 
         ap_row = QuickSettingsIconLabelRow(
@@ -150,15 +183,7 @@ class WifiSubMenu(QuickSubMenu):
             row_classes=["wifi-ap-main"],
         )
 
-        ssid_button = Button(
-            child=ap_row,
-            style_classes=["submenu-item-label", "wifi-ssid-button"],
-            v_align="center",
-            h_align="start",
-            h_expand=True,
-            on_clicked=lambda btn: self.on_connect_clicked(ap),
-        )
-        ap_container.add(ssid_button)
+        ap_container.start_children = (ap_row,)
 
         # Use BSSID for active AP check, fallback to SSID if needed
         ap_bssid = ap.get("bssid")
@@ -179,20 +204,19 @@ class WifiSubMenu(QuickSubMenu):
 
         wifi_item = Gtk.ListBoxRow(visible=True)
 
-        if is_active:
-            security_label = f"{get_text_icon('tick')} " + security_label
-            if self.wifi_device.get_ap_security(ap.get("active-ap")) != "unsecured":
-                security_label = security_label + f" {get_text_icon('lock')}"
-
-        ap_container.add(
-            Label(
-                markup=f"<b>{security_label}</b>",
-                style_classes=["wifi-ap-status-label"],
-                v_align="center",
-            )
+        ap_container.end_children = Label(
+            markup=f"<b>{security_label}</b>",
+            style_classes=["wifi-ap-status-label"],
+            v_align="center",
         )
 
-        wifi_item.add(ap_container)
+        ap_btn_container = Button(
+            child=ap_container,
+            h_expand=True,
+            style_classes=["wifi-ap-button"],
+        )
+
+        wifi_item.add(ap_btn_container)
         return wifi_item
 
     def on_disconnect_clicked(self, ap: NM.AccessPoint):
@@ -202,10 +226,22 @@ class WifiSubMenu(QuickSubMenu):
 
     def on_connect_clicked(self, ap: NM.AccessPoint):
         ssid = ap.get("ssid")
-        # Optionally, prompt for password if needed (not implemented here)
-        # For now, try to connect without password
-        if self.wifi_device:
-            self.wifi_device.connect_network(ssid)
+        if not self.wifi_device:
+            return
+
+        if ap.get("secured"):
+            password = self._prompt_for_password(ssid)
+            if password is None:
+                return
+            if not password:
+                logger.warning("[WifiService] Empty password, aborting connection")
+                return
+
+            self.wifi_device.connect_network(ssid, password=password)
+            return
+
+        # Open network, attempt direct connection.
+        self.wifi_device.connect_network(ssid)
 
 
 class WifiToggle(QSChevronButton):
