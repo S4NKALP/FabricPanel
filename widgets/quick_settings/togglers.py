@@ -1,11 +1,8 @@
-from fabric.widgets.box import Box
-from fabric.widgets.label import Label
-
 from services import notification_service
 from shared.button_toggle import CommandSwitcher
 from shared.buttons import HoverButton
 from utils.icons import get_text_icon
-from utils.widget_utils import nerd_font_icon
+from widgets.quick_settings.components import QuickSettingsIconLabelRow
 
 
 class QuickSettingToggler(CommandSwitcher):
@@ -60,23 +57,16 @@ class NotificationQuickSetting(HoverButton):
 
         self.popup = popup
 
-        self.notification_label = Label(
-            label="Noisy",
-        )
-        self.notification_icon = nerd_font_icon(
+        self.row = QuickSettingsIconLabelRow(
             icon=get_text_icon("notifications.noisy"),
-            props={"style_classes": ["panel-font-icon"]},
+            label="Noisy",
+            row_classes=["quicksettings-toggle-row"],
         )
 
-        self.children = Box(
-            orientation="h",
-            spacing=10,
-            style="padding: 5px;",
-            children=(
-                self.notification_icon,
-                self.notification_label,
-            ),
-        )
+        self.notification_icon = self.row.icon
+        self.notification_label = self.row.label
+
+        self.children = self.row
 
         notification_service.connect("dnd", self.toggle_notification)
 

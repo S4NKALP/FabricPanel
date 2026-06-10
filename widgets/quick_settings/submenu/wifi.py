@@ -11,7 +11,7 @@ from shared.list import ListBox
 from shared.submenu import QuickSubMenu
 from utils.exceptions import NetworkManagerNotFoundError
 from utils.icons import get_text_icon, network_icon_to_text_icons
-from utils.widget_utils import nerd_font_icon
+from widgets.quick_settings.components import QuickSettingsIconLabelRow
 
 try:
     gi.require_version("NM", "1.0")
@@ -134,29 +134,27 @@ class WifiSubMenu(QuickSubMenu):
         icon_name = ap.get("icon-name")
 
         ap_container = Box(
-            style="padding: 5px;",
             orientation="h",
-            spacing=4,
+            spacing=8,
             tooltip_markup=ssid,
+            style_classes=["wifi-ap-container"],
         )
-        ap_container.add(
-            nerd_font_icon(
-                icon=network_icon_to_text_icons.get(
-                    icon_name,
-                    get_text_icon("wifi.generic"),
-                ),
-                props={
-                    "style_classes": ["panel-font-icon"],
-                    "style": "font-size: 16px;",
-                },
-            )
-        )
-        ssid_button = Button(
+
+        ap_row = QuickSettingsIconLabelRow(
+            icon=network_icon_to_text_icons.get(
+                icon_name,
+                get_text_icon("wifi.generic"),
+            ),
             label=ssid,
+            icon_size=16,
+            row_classes=["wifi-ap-main"],
+        )
+
+        ssid_button = Button(
+            child=ap_row,
             style_classes=["submenu-item-label", "wifi-ssid-button"],
             v_align="center",
             h_align="start",
-            ellipsization="end",
             h_expand=True,
             on_clicked=lambda btn: self.on_connect_clicked(ap),
         )
@@ -189,7 +187,7 @@ class WifiSubMenu(QuickSubMenu):
         ap_container.add(
             Label(
                 markup=f"<b>{security_label}</b>",
-                style="font-size: 14px",
+                style_classes=["wifi-ap-status-label"],
                 v_align="center",
             )
         )

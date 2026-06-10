@@ -1,3 +1,5 @@
+import importlib
+
 from fabric.utils import GLib, Gtk, bulk_connect, invoke_repeater, logger, os
 from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
@@ -9,12 +11,10 @@ from services import (
     audio_service,
 )
 from services.brightness import BrightnessService
-from services.mpris import MprisPlayerManager
 from services.network import NetworkService, Wifi
 from shared.buttons import HoverButton, QSChevronButton
 from shared.circle_image import CircularImage
 from shared.dialog import Dialog
-from shared.media import PlayerBoxStack
 from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
 from utils.constants import ASSETS_DIR
@@ -25,19 +25,18 @@ from utils.widget_utils import (
     get_brightness_icon_name,
     nerd_font_icon,
 )
-from widgets.quick_settings.submenu.hyprsunset import (
-    HyprSunsetSubMenu,
-    HyprSunsetToggle,
-)
 
+from .components import LazyWidgetContainer
 from .shortcuts import ShortcutsContainer
-from .submenu.bluetooth import BluetoothSubMenu, BluetoothToggle
-from .submenu.power_profiles import PowerProfileSubMenu, PowerProfileToggle
-from .submenu.wifi import WifiSubMenu, WifiToggle
 from .togglers import (
     HyprIdleQuickSetting,
     NotificationQuickSetting,
 )
+
+
+def _load_class(module_name: str, class_name: str):
+    module = importlib.import_module(module_name)
+    return getattr(module, class_name)
 
 
 class QuickSettingsButtonBox(Box):
@@ -68,43 +67,47 @@ class QuickSettingsButtonBox(Box):
 
         self.active_submenu = None
 
-        # Bluetooth
-        self.bluetooth_toggle = BluetoothToggle(
-            submenu=BluetoothSubMenu(),
+        wifi_submenu_cls = _load_class(
+            "widgets.quick_settings.submenu.wifi", "WifiSubMenu"
+        )
+        wifi_toggle_cls = _load_class(
+            "widgets.quick_settings.submenu.wifi", "WifiToggle"
+        )
+        bluetooth_submenu_cls = _load_class(
+            "widgets.quick_settings.submenu.bluetooth", "BluetoothSubMenu"
+        )
+        bluetooth_toggle_cls = _load_class(
+            "widgets.quick_settings.submenu.bluetooth", "BluetoothToggle"
+        )
+        power_submenu_cls = _load_class(
+            "widgets.quick_settings.submenu.power_profiles", "PowerProfileSubMenu"
+        )
+        power_toggle_cls = _load_class(
+            "widgets.quick_settings.submenu.power_profiles", "PowerProfileToggle"
+        )
+        hyprsunset_submenu_cls = _load_class(
+            "widgets.quick_settings.submenu.hyprsunset", "HyprSunsetSubMenu"
+        )
+        hyprsunset_toggle_cls = _load_class(
+            "widgets.quick_settings.submenu.hyprsunset", "HyprSunsetToggle"
         )
 
-        # Wifi
-        self.wifi_toggle = WifiToggle(
-            submenu=WifiSubMenu(),
+        self.bluetooth_toggle = bluetooth_toggle_cls(submenu=bluetooth_submenu_cls())
+        self.wifi_toggle = wifi_toggle_cls(submenu=wifi_submenu_cls())
+        self.power_pfl = power_toggle_cls(submenu=power_submenu_cls(), popup=popup)
+        self.hyprsunset = hyprsunset_toggle_cls(
+            submenu=hyprsunset_submenu_cls(),
+            popup=popup,
         )
-
-        self.power_pfl = PowerProfileToggle(submenu=PowerProfileSubMenu(), popup=popup)
-
-        self.hyprsunset = HyprSunsetToggle(submenu=HyprSunsetSubMenu(), popup=popup)
         self.hypridle = HyprIdleQuickSetting(popup=popup)
         self.notification_btn = NotificationQuickSetting(popup=popup)
 
-        self.grid.attach(self.wifi_toggle, 1, 1, 1, 1)
-
-        self.grid.attach_next_to(
-            self.bluetooth_toggle, self.wifi_toggle, Gtk.PositionType.RIGHT, 1, 1
-        )
-
-        self.grid.attach_next_to(
-            self.power_pfl, self.wifi_toggle, Gtk.PositionType.BOTTOM, 1, 1
-        )
-
-        self.grid.attach_next_to(
-            self.hyprsunset, self.bluetooth_toggle, Gtk.PositionType.BOTTOM, 1, 1
-        )
-
-        self.grid.attach_next_to(
-            self.hypridle, self.power_pfl, Gtk.PositionType.BOTTOM, 1, 1
-        )
-
-        self.grid.attach_next_to(
-            self.notification_btn, self.hypridle, Gtk.PositionType.RIGHT, 1, 1
-        )
+        self.grid.attach(self.wifi_toggle, 0, 0, 1, 1)
+        self.grid.attach(self.bluetooth_toggle, 1, 0, 1, 1)
+        self.grid.attach(self.power_pfl, 0, 1, 1, 1)
+        self.grid.attach(self.hyprsunset, 1, 1, 1, 1)
+        self.grid.attach(self.hypridle, 0, 2, 1, 1)
+        self.grid.attach(self.notification_btn, 1, 2, 1, 1)
 
         self.wifi_toggle.connect("reveal-clicked", self.set_active_submenu)
         self.bluetooth_toggle.connect("reveal-clicked", self.set_active_submenu)
@@ -299,20 +302,26 @@ class QuickSettingsMenu(Box):
         )
 
         slider_factory = {
-            "brightness": lambda: __import__(
+            "brightness": (
                 "widgets.quick_settings.sliders.brightness",
-                fromlist=["BrightnessSlider"],
-            ).BrightnessSlider(),
-            "volume": lambda: __import__(
-                "widgets.quick_settings.sliders.audio",
-                fromlist=["AudioSlider"],
-            ).AudioSlider(),
+                "BrightnessSlider",
+            ),
+            "volume": ("widgets.quick_settings.sliders.audio", "AudioSlider"),
+            "microphone": (
+                "widgets.quick_settings.sliders.mic",
+                "MicrophoneSlider",
+            ),
+            "mic": ("widgets.quick_settings.sliders.mic", "MicrophoneSlider"),
         }
 
-        for index, slider in enumerate(controls_config.get("sliders", [])):
-            factory = slider_factory.get(slider)
-            if factory:
-                sliders_grid.attach(factory(), 0, index, 1, 1)
+        for index, slider_name in enumerate(controls_config.get("sliders", [])):
+            slider_path = slider_factory.get(slider_name)
+            if not slider_path:
+                logger.warning(f"Unknown quick settings slider: {slider_name}")
+                continue
+
+            slider_cls = _load_class(*slider_path)
+            sliders_grid.attach(slider_cls(), 0, index, 1, 1)
 
         if shortcuts_enabled:
             shortcuts_box = Box(
@@ -351,15 +360,16 @@ class QuickSettingsMenu(Box):
         )
 
         if self.config.get("media", {}).get("enabled", False):
+            media_config = self.config.get("media", {})
+
             box.end_children = (
-                Box(
+                LazyWidgetContainer(
                     orientation="v",
                     spacing=10,
-                    style_classes=["section-box"],
-                    children=(
-                        PlayerBoxStack(
-                            MprisPlayerManager(), config=self.config.get("media", {})
-                        ),
+                    style_classes=["section-box", "quicksettings-media-section"],
+                    factory=lambda: _load_class("shared.media", "PlayerBoxStack")(
+                        _load_class("services.mpris", "MprisPlayerManager")(),
+                        config=media_config,
                     ),
                 ),
             )
@@ -368,7 +378,9 @@ class QuickSettingsMenu(Box):
 
         invoke_repeater(
             1000,
-            lambda *_: uptime_label.set_label(f" {helpers.uptime()}"),
+            lambda *_: uptime_label.set_label(
+                f"{get_text_icon('hourglass')} {helpers.uptime()}"
+            ),
         )
 
     def show_dialog(self, title: str, body: str, command: str):

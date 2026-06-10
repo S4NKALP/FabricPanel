@@ -306,6 +306,24 @@ $toggler-radius: variable.$radius * 1.4;
     // this is for buttons like hypridle
 
     #quicksettings-togglebutton {
+      border-radius: $toggler-radius;
+      background-color: theme.$background;
+
+      &.pill-hover {
+        background-color: theme.$background-alt;
+      }
+
+      &.active {
+        background-color: theme.$accent-purple;
+
+        label,
+        image,
+        .panel-font-icon,
+        .panel-text {
+          color: color.mix(#000000, white, 8%);
+        }
+      }
+
       &.quicksettings-toggler {
         background-color: theme.$background;
         border-radius: $toggler-radius;
@@ -320,6 +338,10 @@ $toggler-radius: variable.$radius * 1.4;
 
         .panel-text {
           background-color: transparent;
+        }
+
+        .quicksettings-row-label {
+          margin-left: 0;
         }
 
         &.active {
@@ -345,33 +367,33 @@ $toggler-radius: variable.$radius * 1.4;
       }
 
       button {
-        background-color: theme.$background;
+        background-color: transparent;
         color: theme.$text-main;
+        border-radius: 0;
 
         @include common.image-label-colors(theme.$text-main);
 
+        &:hover,
         &:active {
-          background-color: theme.$background-alt;
+          background-color: transparent;
+        }
+
+        &:active {
+          background-color: transparent;
 
           image,
           label {
-            background-color: theme.$background-alt;
+            background-color: transparent;
           }
         }
       }
 
       &.active button {
-        background-color: theme.$accent-purple;
         color: color.mix(#000000, white, 8%);
         padding-left: common.toEm(1);
         padding-right: common.toEm(4);
 
         @include common.image-label-colors(color.mix(#000000, white, 8%));
-
-        &:hover,
-        &:active {
-          background-color: color.mix(theme.$accent-blue, black, 90%);
-        }
       }
     }
   }

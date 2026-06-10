@@ -76,6 +76,7 @@ class QSToggleButton(Box, BaseWidget):
         **kwargs,
     ):
         self.pixel_size = pixel_size
+        self._hover_segments = 0
 
         # Action button can hold an icon and a label NOTHING MORE
         self.action_icon = nerd_font_icon(
@@ -157,6 +158,8 @@ class QSChevronButton(QSToggleButton):
             h_expand=True,
             on_clicked=self._reveal_toggle,
         )
+        self.reveal_button.connect("enter-notify-event", self._on_segment_enter)
+        self.reveal_button.connect("leave-notify-event", self._on_segment_leave)
 
         super().__init__(
             action_label,

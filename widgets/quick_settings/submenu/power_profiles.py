@@ -83,7 +83,7 @@ class PowerProfileSubMenu(QuickSubMenu):
             orientation="v",
             name="power-profile-container",
             spacing=8,
-            style="margin: 5px 0;",
+            style_classes=["power-profile-container"],
         )
 
         super().__init__(
