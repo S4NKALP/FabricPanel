@@ -79,7 +79,9 @@ class BatteryWidget(ButtonWidget):
         glyph = self._map_glyph(battery_percent, is_charging)
 
         formatted_time = format_seconds_to_hours_minutes(time_remaining)
-        percent_color = self._get_color_for_percent(battery_percent)
+        percent_color = (
+            "#31f491" if is_charging else self._get_color_for_percent(battery_percent)
+        )
 
         label_format = self.label_format
 
