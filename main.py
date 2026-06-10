@@ -13,7 +13,7 @@ import utils.functions as helpers
 from modules.bar import Bar
 from utils.colors import Colors
 from utils.config import theme_config, widget_config
-from utils.constants import APP_DATA_DIRECTORY, APPLICATION_NAME
+from utils.constants import APP_DATA_DIRECTORY, APPLICATION_NAME, CSS_PATH
 
 
 def process_and_apply_css(app: Application):
@@ -22,15 +22,11 @@ def process_and_apply_css(app: Application):
     @helpers.run_in_thread
     def _compile():
         logger.info(f"{Colors.INFO}[Main] Compiling CSS")
-        output = exec_shell_command(
-            "sass styles/main.scss dist/main.css --no-source-map"
-        )
+        output = exec_shell_command(f"sass styles/main.scss {CSS_PATH} --no-source-map")
 
         if output == "":
             logger.info(f"{Colors.INFO}[Main] CSS applied")
-            idle_add(
-                lambda: app.set_stylesheet_from_file(get_relative_path("dist/main.css"))
-            )
+            idle_add(lambda: app.set_stylesheet_from_file(get_relative_path(CSS_PATH)))
         else:
             logger.exception(f"{Colors.ERROR}[Main]Failed to compile sass!")
             logger.exception(f"{Colors.ERROR}[Main] {output}")

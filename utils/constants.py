@@ -25,6 +25,8 @@ QUOTES_CACHE_FILE = f"{APP_DATA_DIRECTORY}/quotes.json"
 ICON_CACHE_FILE = f"{APP_DATA_DIRECTORY}/icons.json"
 PINNED_APPS_FILE = f"{APP_DATA_DIRECTORY}/pinned_apps.json"
 KANBAN_FILE = f"{APP_DATA_DIRECTORY}/kanban.json"
+CSS_PATH = f"{APP_DATA_DIRECTORY}/main.css"
+
 
 ASSETS_DIR = get_relative_path("../assets/")
 
