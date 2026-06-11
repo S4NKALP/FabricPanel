@@ -228,14 +228,15 @@ class WeatherMenu(Box, BaseWeatherWidget):
             name="weather-grid",
         )
 
-        expander = Gtk.Expander(
-            name="weather-expander",
-            visible=True,
-            child=self.forecast_box,
-            expanded=self.config.get("expanded", True),
+        self.children = (
+            self.title_box,
+            Gtk.Expander(
+                name="weather-expander",
+                visible=True,
+                child=self.forecast_box,
+                expanded=self.config.get("expanded", True),
+            ),
         )
-
-        self.children = (self.title_box, expander)
 
         weather_service.set_provider(self.config.get("provider", "open-meteo"))
         weather_service.get_weather_async(

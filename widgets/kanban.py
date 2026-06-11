@@ -238,7 +238,6 @@ class KanbanColumn(Gtk.Frame):
         scrolled.add(self.listbox)
 
         self.box.pack_start(scrolled, True, True, 0)
-        self.box.pack_start(self.add_btn, False, False, 0)
         self.add(self.box)
         self.show_all()
 

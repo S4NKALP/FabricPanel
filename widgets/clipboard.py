@@ -31,9 +31,6 @@ from utils.widget_utils import nerd_font_icon
 _HTML_IMG_RE = re.compile(r"^\s*<img\s+")
 
 
-# TODO: add scrolled pagination
-
-
 class ClipHistoryMenu(Box):
     """A widget to display and manage clipboard history."""
 
@@ -44,6 +41,9 @@ class ClipHistoryMenu(Box):
     ):
         super().__init__(
             name="clip-menu",
+            orientation="v",
+            spacing=10,
+            h_expand=True,
             **kwargs,
         )
 
@@ -52,7 +52,7 @@ class ClipHistoryMenu(Box):
         # Create a temporary directory for image icons
         self.tmp_dir = tempfile.mkdtemp(prefix="cliphist-")
         self.image_cache = {}  # Cache for image previews (limited to MAX_IMAGE_CACHE)
-        self.MAX_IMAGE_CACHE = 30  # Limit cache size to prevent memory bloat
+        self.MAX_IMAGE_CACHE = 10  # Limit cache size to prevent memory bloat
 
         self.selected_index = -1  # Track the selected item index
         self._arranger_handler = 0
@@ -105,6 +105,8 @@ class ClipHistoryMenu(Box):
             max_content_size=(300, 105),
             child=self.viewport,
         )
+        vadj = self.scrolled_window.get_vadjustment()
+        vadj.connect("value-changed", self.on_scroll)
 
         self.header_box = Box(
             name="header_box",
@@ -121,18 +123,7 @@ class ClipHistoryMenu(Box):
             ],
         )
 
-        self.history_box = Box(
-            name="launcher-box",
-            spacing=10,
-            h_expand=True,
-            orientation="v",
-            children=[
-                self.header_box,
-                self.scrolled_window,
-            ],
-        )
-
-        self.add(self.history_box)
+        self.children = [self.header_box, self.scrolled_window]
         self.connect("destroy", self._on_destroy)
         self.open()  # Load items when the widget is created
 
@@ -140,7 +131,7 @@ class ClipHistoryMenu(Box):
         if icon_pos == Gtk.EntryIconPosition.SECONDARY:
             self.search_entry.set_text("")
 
-    def _load_next_batch(self, aps):
+    def _load_next_batch(self):
         if self.loading or self.items_loaded >= self.max_items:
             return
         self.loading = True
@@ -148,11 +139,25 @@ class ClipHistoryMenu(Box):
         items_to_add = min(self.batch_size, self.max_items - self.items_loaded)
 
         for i in range(self.items_loaded, self.items_loaded + items_to_add):
-            notification_item = self.make_button_from_ap(aps[i])
-            self.viewport.add(notification_item)
+            self.viewport.add(self.create_clipboard_item(self.filtered_items[i]))
 
         self.items_loaded += items_to_add
         self.loading = False
+
+        if self.search_entry.get_text() and self.viewport.get_children():
+            self.update_selection(0)
+
+    def on_scroll(self, adjustment: Gtk.Adjustment):
+        """Load next page when user scrolls near the bottom."""
+        if self.loading or self.items_loaded >= self.max_items:
+            return
+
+        value = adjustment.get_value()
+        upper = adjustment.get_upper()
+        page_size = adjustment.get_page_size()
+
+        if value + page_size >= upper - 50:
+            self._load_next_batch()
 
     def on_search_text_changed(self, entry, pspec):
         # Remove any existing pending filter operation
@@ -242,7 +247,7 @@ class ClipHistoryMenu(Box):
             if filter_text.lower() in content.lower():
                 filtered_items.append(item)
 
-            self.filtered_items = filtered_items
+        self.filtered_items = filtered_items
 
         # Show message if no items are found
         if not filtered_items:
@@ -278,24 +283,11 @@ class ClipHistoryMenu(Box):
             self.viewport.add(container)
             return
 
-        # Display items in batches to prevent UI freeze
-        self._display_items_batch(filtered_items, 0, 10)
-
-    def _display_items_batch(self, items, start, batch_size):
-        """Display items in batches to keep UI responsive"""
-        end = min(start + batch_size, len(items))
-
-        for i in range(start, end):
-            item = items[i]
-            self.viewport.add(self.create_clipboard_item(item))
-
-        # Schedule next batch if there are more items
-        if end < len(items):
-            idle_add(self._display_items_batch, items, end, batch_size)
-        else:
-            # Auto-select first item if we have filter text
-            if self.search_entry.get_text() and self.viewport.get_children():
-                self.update_selection(0)
+        # Pagination: start with first page, then append on scroll.
+        self.items_loaded = 0
+        self.max_items = len(filtered_items)
+        self.loading = False
+        self._load_next_batch()
 
     def create_clipboard_item(self, item):
         """Create a button for a clipboard item"""
