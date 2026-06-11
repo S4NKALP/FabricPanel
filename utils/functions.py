@@ -727,6 +727,16 @@ def toggle_command(command: str, full_command: str):
         )
 
 
+def char_limit_to_px(label_widget, char_limit: int) -> int:
+    n = max(1, int(char_limit))
+    sample = "M" * n  # conservative (wide) mapping
+    layout = label_widget.create_pango_layout(sample)
+    style = label_widget.get_style_context()
+    layout.set_font_description(style.get_font(Gtk.StateFlags.NORMAL))
+    px, _ = layout.get_pixel_size()
+    return px
+
+
 ## Function to execute a shell command asynchronously
 def kill_process(process_name: str):
     exec_shell_command_async(f"pkill {process_name}", lambda *_: None)

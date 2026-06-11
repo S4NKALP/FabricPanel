@@ -8,7 +8,7 @@ from shared.scrollable_text import ScrollingLabel
 from shared.widget_container import ButtonWidget
 from utils.colors import Colors
 from utils.constants import ASSETS_DIR, NEWLINE_RE
-from utils.functions import safe_disconnect
+from utils.functions import char_limit_to_px, safe_disconnect
 
 
 class MprisWidget(ButtonWidget, PopoverMixin):
@@ -28,6 +28,7 @@ class MprisWidget(ButtonWidget, PopoverMixin):
             text="Nothing playing",
             style_classes=["panel-text"],
             scroll_on_hover=True,
+            max_width=char_limit_to_px(self, self.config.get("truncation_size", 30)),
         )
 
         self.cover = Box(style_classes=["cover"])
@@ -51,7 +52,7 @@ class MprisWidget(ButtonWidget, PopoverMixin):
             },
         )
 
-        self.config = {
+        config = {
             "enabled": True,
             "ignore": ["vlc"],
             "truncation_size": 30,
@@ -84,7 +85,7 @@ class MprisWidget(ButtonWidget, PopoverMixin):
         self.setup_popover(
             lambda: Box(
                 style_classes=["mpris-box"],
-                children=[PlayerBoxStack(self.mpris_manager, config=self.config)],
+                children=[PlayerBoxStack(self.mpris_manager, config=config)],
             )
         )
         self._start_progress_timer()
@@ -199,11 +200,11 @@ class MprisWidget(ButtonWidget, PopoverMixin):
 
         self.get_current()
 
-    def on_hover_enter(self, widget, event):
+    def on_hover_enter(self, *_):
         self.label.on_enter_notify()
         return False
 
-    def on_hover_leave(self, widget, event):
+    def on_hover_leave(self, *_):
         self.label.on_leave_notify()
         return False
 
@@ -216,13 +217,7 @@ class MprisWidget(ButtonWidget, PopoverMixin):
         title = self.player.title or ""
         bar_label = NEWLINE_RE.sub(" ", title).strip() or "Nothing playing"
 
-        truncated_info = (
-            bar_label
-            if len(bar_label) < self.config.get("truncation_size", 30)
-            else bar_label[: self.config.get("truncation_size", 30)]
-        )
-
-        self.label.set_text(truncated_info)
+        self.label.set_text(bar_label)
 
         art_url = getattr(self.player, "arturl", None)
         if not art_url:
