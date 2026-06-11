@@ -690,10 +690,6 @@ class DateTimeWidget(ButtonWidget, PopoverMixin):
             ):
                 self.count_label.set_visible(False)
 
-            self.notification_indicator_box = Box(
-                children=(self.notification_indicator, self.count_label)
-            )
-
             bulk_connect(
                 notification_service,
                 {
@@ -702,7 +698,8 @@ class DateTimeWidget(ButtonWidget, PopoverMixin):
                 },
             )
 
-            self.container_box.add(self.notification_indicator_box)
+            self.container_box.add(self.notification_indicator)
+            self.container_box.add(self.count_label)
 
         if self.config.get("hover_reveal", True):
             self.revealer = Revealer(
