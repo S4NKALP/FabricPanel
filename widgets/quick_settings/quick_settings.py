@@ -1,5 +1,3 @@
-import importlib
-
 from fabric.utils import GLib, Gtk, bulk_connect, invoke_repeater, logger, os
 from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
@@ -18,7 +16,7 @@ from shared.dialog import Dialog
 from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
 from utils.constants import ASSETS_DIR
-from utils.functions import safe_disconnect
+from utils.functions import lazy_load_class, safe_disconnect
 from utils.icons import get_text_icon, network_icon_to_text_icons
 from utils.widget_utils import (
     get_audio_icon_name,
@@ -34,13 +32,19 @@ from .togglers import (
 )
 
 
-def _load_class(module_name: str, class_name: str):
-    module = importlib.import_module(module_name)
-    return getattr(module, class_name)
-
-
 class QuickSettingsButtonBox(Box):
     """A box to display the quick settings buttons."""
+
+    @staticmethod
+    def _build_toggle(
+        module_path: str,
+        submenu_cls_name: str,
+        toggle_cls_name: str,
+        **kwargs,
+    ):
+        submenu_cls = lazy_load_class(module_path, submenu_cls_name)
+        toggle_cls = lazy_load_class(module_path, toggle_cls_name)
+        return toggle_cls(submenu=submenu_cls(), **kwargs)
 
     def close_all_submenus(self, *_):
         if self.active_submenu is not None:
@@ -67,52 +71,50 @@ class QuickSettingsButtonBox(Box):
 
         self.active_submenu = None
 
-        wifi_submenu_cls = _load_class(
-            "widgets.quick_settings.submenu.wifi", "WifiSubMenu"
+        self.bluetooth_toggle = self._build_toggle(
+            "widgets.quick_settings.submenu.bluetooth",
+            "BluetoothSubMenu",
+            "BluetoothToggle",
         )
-        wifi_toggle_cls = _load_class(
-            "widgets.quick_settings.submenu.wifi", "WifiToggle"
+        self.wifi_toggle = self._build_toggle(
+            "widgets.quick_settings.submenu.wifi",
+            "WifiSubMenu",
+            "WifiToggle",
         )
-        bluetooth_submenu_cls = _load_class(
-            "widgets.quick_settings.submenu.bluetooth", "BluetoothSubMenu"
+        self.power_pfl = self._build_toggle(
+            "widgets.quick_settings.submenu.power_profiles",
+            "PowerProfileSubMenu",
+            "PowerProfileToggle",
+            popup=popup,
         )
-        bluetooth_toggle_cls = _load_class(
-            "widgets.quick_settings.submenu.bluetooth", "BluetoothToggle"
-        )
-        power_submenu_cls = _load_class(
-            "widgets.quick_settings.submenu.power_profiles", "PowerProfileSubMenu"
-        )
-        power_toggle_cls = _load_class(
-            "widgets.quick_settings.submenu.power_profiles", "PowerProfileToggle"
-        )
-        hyprsunset_submenu_cls = _load_class(
-            "widgets.quick_settings.submenu.hyprsunset", "HyprSunsetSubMenu"
-        )
-        hyprsunset_toggle_cls = _load_class(
-            "widgets.quick_settings.submenu.hyprsunset", "HyprSunsetToggle"
-        )
-
-        self.bluetooth_toggle = bluetooth_toggle_cls(submenu=bluetooth_submenu_cls())
-        self.wifi_toggle = wifi_toggle_cls(submenu=wifi_submenu_cls())
-        self.power_pfl = power_toggle_cls(submenu=power_submenu_cls(), popup=popup)
-        self.hyprsunset = hyprsunset_toggle_cls(
-            submenu=hyprsunset_submenu_cls(),
+        self.hyprsunset = self._build_toggle(
+            "widgets.quick_settings.submenu.hyprsunset",
+            "HyprSunsetSubMenu",
+            "HyprSunsetToggle",
             popup=popup,
         )
         self.hypridle = HyprIdleQuickSetting(popup=popup)
         self.notification_btn = NotificationQuickSetting(popup=popup)
 
-        self.grid.attach(self.wifi_toggle, 0, 0, 1, 1)
-        self.grid.attach(self.bluetooth_toggle, 1, 0, 1, 1)
-        self.grid.attach(self.power_pfl, 0, 1, 1, 1)
-        self.grid.attach(self.hyprsunset, 1, 1, 1, 1)
-        self.grid.attach(self.hypridle, 0, 2, 1, 1)
-        self.grid.attach(self.notification_btn, 1, 2, 1, 1)
+        toggles_with_positions = (
+            (self.wifi_toggle, (0, 0, 1, 1)),
+            (self.bluetooth_toggle, (1, 0, 1, 1)),
+            (self.power_pfl, (0, 1, 1, 1)),
+            (self.hyprsunset, (1, 1, 1, 1)),
+            (self.hypridle, (0, 2, 1, 1)),
+            (self.notification_btn, (1, 2, 1, 1)),
+        )
 
-        self.wifi_toggle.connect("reveal-clicked", self.set_active_submenu)
-        self.bluetooth_toggle.connect("reveal-clicked", self.set_active_submenu)
-        self.power_pfl.connect("reveal-clicked", self.set_active_submenu)
-        self.hyprsunset.connect("reveal-clicked", self.set_active_submenu)
+        for widget, (col, row, width, height) in toggles_with_positions:
+            self.grid.attach(widget, col, row, width, height)
+
+        for toggle in (
+            self.wifi_toggle,
+            self.bluetooth_toggle,
+            self.power_pfl,
+            self.hyprsunset,
+        ):
+            toggle.connect("reveal-clicked", self.set_active_submenu)
 
         self.children = (
             self.grid,
@@ -134,6 +136,20 @@ class QuickSettingsButtonBox(Box):
 
 class QuickSettingsMenu(Box):
     """A menu to display the quick settings information."""
+
+    def _create_power_button(self, icon_name: str, title: str, body: str, command: str):
+        return HoverButton(
+            child=nerd_font_icon(
+                icon=get_text_icon(icon_name),
+                props={"style_classes": ["panel-font-icon"]},
+            ),
+            v_align="center",
+            on_clicked=lambda *_: self.show_dialog(
+                title=title,
+                body=body,
+                command=command,
+            ),
+        )
 
     def __init__(self, config: dict, popup, **kwargs):
         super().__init__(
@@ -209,29 +225,17 @@ class QuickSettingsMenu(Box):
             Box(
                 orientation="h",
                 children=(
-                    HoverButton(
-                        child=nerd_font_icon(
-                            icon=get_text_icon("power_menu.reboot"),
-                            props={"style_classes": ["panel-font-icon"]},
-                        ),
-                        v_align="center",
-                        on_clicked=lambda *_: self.show_dialog(
-                            title="reboot",
-                            body="Do you really want to reboot?",
-                            command="reboot",
-                        ),
+                    self._create_power_button(
+                        "power_menu.reboot",
+                        "reboot",
+                        "Do you really want to reboot?",
+                        "reboot",
                     ),
-                    HoverButton(
-                        child=nerd_font_icon(
-                            icon=get_text_icon("power_menu.shutdown"),
-                            props={"style_classes": ["panel-font-icon"]},
-                        ),
-                        v_align="center",
-                        on_clicked=lambda *_: self.show_dialog(
-                            title="shutdown",
-                            body="Do you really want to shutdown?",
-                            command="shutdown",
-                        ),
+                    self._create_power_button(
+                        "power_menu.shutdown",
+                        "shutdown",
+                        "Do you really want to shutdown?",
+                        "shutdown",
                     ),
                 ),
             ),
@@ -320,7 +324,7 @@ class QuickSettingsMenu(Box):
                 logger.warning(f"Unknown quick settings slider: {slider_name}")
                 continue
 
-            slider_cls = _load_class(*slider_path)
+            slider_cls = lazy_load_class(*slider_path)
             sliders_grid.attach(slider_cls(), 0, index, 1, 1)
 
         if shortcuts_enabled:
@@ -367,8 +371,8 @@ class QuickSettingsMenu(Box):
                     orientation="v",
                     spacing=10,
                     style_classes=["section-box", "quicksettings-media-section"],
-                    factory=lambda: _load_class("shared.media", "PlayerBoxStack")(
-                        _load_class("services.mpris", "MprisPlayerManager")(),
+                    factory=lambda: lazy_load_class("shared.media", "PlayerBoxStack")(
+                        lazy_load_class("services.mpris", "MprisPlayerManager")(),
                         config=media_config,
                     ),
                 ),
@@ -376,12 +380,18 @@ class QuickSettingsMenu(Box):
 
         self.add(box)
 
-        invoke_repeater(
+        self._uptime_repeater_id = invoke_repeater(
             1000,
             lambda *_: uptime_label.set_label(
                 f"{get_text_icon('hourglass')} {helpers.uptime()}"
             ),
         )
+
+    def destroy(self):
+        if getattr(self, "_uptime_repeater_id", None) is not None:
+            GLib.source_remove(self._uptime_repeater_id)
+            self._uptime_repeater_id = None
+        return super().destroy()
 
     def show_dialog(self, title: str, body: str, command: str):
         """Show a dialog with the given title and body."""
@@ -401,12 +411,10 @@ class QuickSettingsButtonWidget(ButtonWidget, PopoverMixin):
     def __init__(self, **kwargs):
         super().__init__(name="quick_settings", **kwargs)
 
-        self._timeout_id = None
         self._active_wifi = None
         self._wifi_changed_handler_id = None
         self._active_speaker = None
         self._speaker_volume_handler_id = None
-        self.panel_icon_size = 16
 
         self.audio_service = audio_service
 
@@ -464,12 +472,7 @@ class QuickSettingsButtonWidget(ButtonWidget, PopoverMixin):
         if self.network_service.primary_device == "wifi":
             wifi = self.network_service.wifi_device
             if wifi:
-                self.network_icon.set_label(
-                    network_icon_to_text_icons.get(
-                        wifi.get_property("icon-name"),
-                        get_text_icon("wifi.generic"),
-                    ),
-                )
+                self._set_network_icon_from_name(wifi.get_property("icon-name"))
                 if (
                     self._active_wifi
                     and self._wifi_changed_handler_id is not None
@@ -483,6 +486,8 @@ class QuickSettingsButtonWidget(ButtonWidget, PopoverMixin):
                         "changed", self.update_wifi_status
                     )
                     self._active_wifi = wifi
+            else:
+                self._set_default_network_icon()
         else:
             ethernet = self.network_service.ethernet_device
             if self._active_wifi and self._wifi_changed_handler_id is not None:
@@ -493,14 +498,22 @@ class QuickSettingsButtonWidget(ButtonWidget, PopoverMixin):
                 self.network_icon.set_label(
                     get_text_icon("ethernet"),
                 )
+            else:
+                self._set_default_network_icon()
 
-    def update_wifi_status(self, wifi: Wifi):
+    def _set_default_network_icon(self):
+        self.network_icon.set_label(get_text_icon("wifi.generic"))
+
+    def _set_network_icon_from_name(self, icon_name):
         self.network_icon.set_label(
             network_icon_to_text_icons.get(
-                wifi.get_property("icon-name"),
+                icon_name,
                 get_text_icon("wifi.generic"),
             )
         )
+
+    def update_wifi_status(self, wifi: Wifi):
+        self._set_network_icon_from_name(wifi.get_property("icon-name"))
 
     def on_speaker_changed(self, *_):
         # Update the progress bar value based on the speaker volume

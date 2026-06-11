@@ -2,6 +2,7 @@ import atexit
 import contextlib
 import ctypes
 import html
+import importlib
 import json
 import re
 import shutil
@@ -735,6 +736,11 @@ def add_style_class_lazy(widget: Gtk.Widget, class_name: str | Iterable[str]) ->
     return invoke_repeater(
         50, lambda: widget.add_style_class(class_name), initial_call=False
     )
+
+
+def lazy_load_class(module_name: str, class_name: str):
+    module = importlib.import_module(module_name)
+    return getattr(module, class_name)
 
 
 def _get_config_collection(parsed_data: dict, widget_type: str) -> list:
