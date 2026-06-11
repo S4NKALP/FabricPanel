@@ -1,4 +1,6 @@
-from fabric.utils import GLib, Gtk, bulk_connect, invoke_repeater, logger, os
+import os
+
+from fabric.utils import GLib, Gtk, bulk_connect, invoke_repeater, logger
 from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.grid import Grid
@@ -30,6 +32,11 @@ from .togglers import (
     HyprIdleQuickSetting,
     NotificationQuickSetting,
 )
+
+_WIFI_GENERIC_ICON = get_text_icon("wifi.generic")
+_ETHERNET_ICON = get_text_icon("ethernet")
+_BRIGHTNESS_MEDIUM_ICON = get_text_icon("brightness.medium")
+_HOURGLASS_ICON = get_text_icon("hourglass")
 
 
 class QuickSettingsButtonBox(Box):
@@ -184,12 +191,13 @@ class QuickSettingsMenu(Box):
         )
 
         uptime_label = Label(
-            label=f"{get_text_icon('hourglass')} {helpers.uptime()}",
+            label=f"{_HOURGLASS_ICON} {helpers.uptime()}",
             style_classes=["uptime"],
             v_align="center",
             h_align="start",
             tooltip_text="System Uptime",
         )
+        self._last_uptime_text = uptime_label.get_label()
 
         self.user_box = Grid(
             column_spacing=10,
@@ -222,22 +230,22 @@ class QuickSettingsMenu(Box):
         )
 
         button_box.pack_end(
-            Box(
-                orientation="h",
-                children=(
-                    self._create_power_button(
-                        "power_menu.reboot",
-                        "reboot",
-                        "Do you really want to reboot?",
-                        "reboot",
-                    ),
-                    self._create_power_button(
-                        "power_menu.shutdown",
-                        "shutdown",
-                        "Do you really want to shutdown?",
-                        "shutdown",
-                    ),
-                ),
+            self._create_power_button(
+                "power_menu.reboot",
+                "reboot",
+                "Do you really want to reboot?",
+                "reboot",
+            ),
+            False,
+            False,
+            5,
+        )
+        button_box.pack_end(
+            self._create_power_button(
+                "power_menu.shutdown",
+                "shutdown",
+                "Do you really want to shutdown?",
+                "shutdown",
             ),
             False,
             False,
@@ -260,48 +268,10 @@ class QuickSettingsMenu(Box):
             4,
         )
 
-        # Create sliders grid
-        sliders_grid = Grid(
-            row_spacing=10,
-            v_align="center",
-            h_expand=True,
-            v_expand=True,
-        )
-
-        # Create center box with sliders and shortcuts if configured
-        center_box = Box(
-            orientation="h", spacing=10, style_classes=["section-box"], h_expand=True
-        )
-
-        main_grid = Grid(
-            column_spacing=10,
-            h_expand=True,
-        )
-        center_box.add(main_grid)
-
-        # Set up grid columns
-        for i in range(3):
-            main_grid.insert_column(i)
-
-        # Determine slider box class based on number of shortcuts
-        shortcuts_enabled = shortcuts_config.get("enabled", False)
-        shortcuts_items = shortcuts_config.get("items", [])
-        if shortcuts_enabled:
-            num_shortcuts = len(shortcuts_items)
-            if 2 < num_shortcuts <= 4:
-                slider_class = "slider-box-shorter"
-            elif 0 < num_shortcuts <= 2:
-                slider_class = "slider-box-short"
-            else:
-                slider_class = "slider-box-long"
-        else:
-            slider_class = "slider-box-long"
-
+        # Create sliders container
         sliders_box = Box(
             orientation="v",
             spacing=10,
-            style_classes=[slider_class],
-            children=(sliders_grid,),
             h_expand=True,
         )
 
@@ -318,14 +288,38 @@ class QuickSettingsMenu(Box):
             "mic": ("widgets.quick_settings.sliders.mic", "MicrophoneSlider"),
         }
 
-        for index, slider_name in enumerate(controls_config.get("sliders", [])):
+        for slider_name in controls_config.get("sliders", []):
             slider_path = slider_factory.get(slider_name)
             if not slider_path:
                 logger.warning(f"Unknown quick settings slider: {slider_name}")
                 continue
 
             slider_cls = lazy_load_class(*slider_path)
-            sliders_grid.attach(slider_cls(), 0, index, 1, 1)
+            sliders_box.add(slider_cls())
+
+        # Determine slider box class and main grid based on shortcuts
+        shortcuts_enabled = shortcuts_config.get("enabled", False)
+        shortcuts_items = shortcuts_config.get("items", [])
+        if shortcuts_enabled:
+            num_shortcuts = len(shortcuts_items)
+            if 2 < num_shortcuts <= 4:
+                slider_class = "slider-box-shorter"
+            elif 0 < num_shortcuts <= 2:
+                slider_class = "slider-box-short"
+            else:
+                slider_class = "slider-box-long"
+            sliders_box.v_expand = True
+        else:
+            slider_class = "slider-box-long"
+
+        sliders_box.add_style_class(slider_class)
+
+        # Create main grid with sliders and shortcuts if configured
+        main_grid = Grid(
+            column_spacing=10,
+            h_expand=True,
+            style_classes=["section-box"],
+        )
 
         if shortcuts_enabled:
             shortcuts_box = Box(
@@ -348,8 +342,6 @@ class QuickSettingsMenu(Box):
             main_grid.attach(shortcuts_box, 2, 0, 1, 1)
         else:
             main_grid.attach(sliders_box, 0, 0, 3, 1)
-
-        # Create main layout box
         box = CenterBox(
             orientation="v",
             style_classes=["quick-settings-box"],
@@ -360,7 +352,7 @@ class QuickSettingsMenu(Box):
                 style_classes=["section-box"],
                 children=(self.user_box, QuickSettingsButtonBox(popup=popup)),
             ),
-            center_children=center_box,
+            center_children=main_grid,
         )
 
         if self.config.get("media", {}).get("enabled", False):
@@ -380,12 +372,15 @@ class QuickSettingsMenu(Box):
 
         self.add(box)
 
-        self._uptime_repeater_id = invoke_repeater(
-            1000,
-            lambda *_: uptime_label.set_label(
-                f"{get_text_icon('hourglass')} {helpers.uptime()}"
-            ),
-        )
+        def _update_uptime(*_):
+            uptime_text = f"{_HOURGLASS_ICON} {helpers.uptime()}"
+            if uptime_text == self._last_uptime_text:
+                return True
+            self._last_uptime_text = uptime_text
+            uptime_label.set_label(uptime_text)
+            return True
+
+        self._uptime_repeater_id = invoke_repeater(1000, _update_uptime)
 
     def destroy(self):
         if getattr(self, "_uptime_repeater_id", None) is not None:
@@ -434,14 +429,18 @@ class QuickSettingsButtonWidget(ButtonWidget, PopoverMixin):
         )
 
         self.network_icon = nerd_font_icon(
-            icon=get_text_icon("wifi.connected"),
+            icon=_WIFI_GENERIC_ICON,
             props={"style_classes": ["panel-font-icon"]},
         )
 
         self.brightness_icon = nerd_font_icon(
-            icon=get_text_icon("brightness.medium"),
+            icon=_BRIGHTNESS_MEDIUM_ICON,
             props={"style_classes": ["panel-font-icon"]},
         )
+
+        self._last_network_icon = None
+        self._last_audio_icon = None
+        self._last_brightness_icon = None
 
         self.update_brightness()
 
@@ -495,20 +494,24 @@ class QuickSettingsButtonWidget(ButtonWidget, PopoverMixin):
                 self._wifi_changed_handler_id = None
                 self._active_wifi = None
             if ethernet:
-                self.network_icon.set_label(
-                    get_text_icon("ethernet"),
-                )
+                self._set_network_icon(_ETHERNET_ICON)
             else:
                 self._set_default_network_icon()
 
+    def _set_network_icon(self, icon_text):
+        if icon_text == self._last_network_icon:
+            return
+        self._last_network_icon = icon_text
+        self.network_icon.set_label(icon_text)
+
     def _set_default_network_icon(self):
-        self.network_icon.set_label(get_text_icon("wifi.generic"))
+        self._set_network_icon(_WIFI_GENERIC_ICON)
 
     def _set_network_icon_from_name(self, icon_name):
-        self.network_icon.set_label(
+        self._set_network_icon(
             network_icon_to_text_icons.get(
                 icon_name,
-                get_text_icon("wifi.generic"),
+                _WIFI_GENERIC_ICON,
             )
         )
 
@@ -537,10 +540,16 @@ class QuickSettingsButtonWidget(ButtonWidget, PopoverMixin):
 
         self.update_volume()
 
+    def _set_audio_icon(self, icon_text):
+        if icon_text == self._last_audio_icon:
+            return
+        self._last_audio_icon = icon_text
+        self.audio_icon.set_label(icon_text)
+
     def check_mute(self, *_):
         if not self.audio_service.speaker:
             return
-        self.audio_icon.set_label(
+        self._set_audio_icon(
             get_audio_icon_name(
                 self.audio_service.speaker.volume, self.audio_service.speaker.muted
             )["icon_text"]
@@ -549,12 +558,17 @@ class QuickSettingsButtonWidget(ButtonWidget, PopoverMixin):
     def update_volume(self, *_):
         if self.audio_service.speaker:
             volume = round(self.audio_service.speaker.volume)
-
-            self.audio_icon.set_label(
+            self._set_audio_icon(
                 get_audio_icon_name(volume, self.audio_service.speaker.muted)[
                     "icon_text"
                 ]
             )
+
+    def _set_brightness_icon(self, icon_text):
+        if icon_text == self._last_brightness_icon:
+            return
+        self._last_brightness_icon = icon_text
+        self.brightness_icon.set_label(icon_text)
 
     def update_brightness(self, *_):
         """Update the brightness icon."""
@@ -562,16 +576,14 @@ class QuickSettingsButtonWidget(ButtonWidget, PopoverMixin):
             normalized_brightness = self.brightness_service.screen_brightness_percentage
             icon_info = get_brightness_icon_name(normalized_brightness)["icon_text"]
             if icon_info:
-                self.brightness_icon.set_label(
-                    icon_info,
-                )
+                self._set_brightness_icon(icon_info)
             else:
                 # Fallback icon if something goes wrong
-                self.brightness_icon.set_label(get_text_icon("brightness.medium"))
+                self._set_brightness_icon(_BRIGHTNESS_MEDIUM_ICON)
         except Exception as e:
             logger.exception(f"Error updating brightness icon: {e}")
             # Fallback icon if something goes wrong
-            self.brightness_icon.set_label(get_text_icon("brightness.medium"))
+            self._set_brightness_icon(_BRIGHTNESS_MEDIUM_ICON)
 
     def destroy(self):
         if self._active_wifi and self._wifi_changed_handler_id is not None:

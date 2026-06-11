@@ -138,3 +138,16 @@ Check against:
 ## gi.repository type stubs
 
 `gi.repository` imports lack type checking by default. Stubs are generated via `gengir`. The Fabric wiki has more detail: https://fabric-development.github.io/fabric-wiki/installing-stubs.html
+
+## GTK Best Practices
+
+- Keep UI updates on main thread only; push heavy work to background and return via GLib idle/timeout callbacks.
+- Prefer signal-driven updates over polling; if polling is required, store timer IDs and stop them on destroy/unmap.
+- Avoid duplicate signal connections; guard repeated setup paths and lifecycle re-entry.
+- Always clean up on destroy: signal handlers, timers, async callbacks, subprocess readers.
+- Use fallback labels/icons for missing services or unavailable devices.
+- Avoid rebuilding full widget trees for small state changes; update existing widgets in place.
+- Keep widget hierarchy shallow and avoid expensive style churn in hot paths.
+- Keep service state logic separate from rendering logic for easier testing and safer refactors.
+- Debounce noisy event streams to limit redundant relayout/repaint work.
+- Never block GTK callbacks with synchronous shell/process operations.
