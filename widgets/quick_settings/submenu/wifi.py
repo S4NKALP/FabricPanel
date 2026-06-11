@@ -25,6 +25,8 @@ class WifiSubMenu(QuickSubMenu):
 
     def __init__(self, **kwargs):
         self.client = NetworkService()
+        self.wifi_device = None
+        self._wifi_connected = None
 
         self.available_networks_listbox = ListBox(
             visible=True, name="available-networks-listbox"
@@ -116,14 +118,17 @@ class WifiSubMenu(QuickSubMenu):
 
     def on_device_ready(self, client: NetworkService):
         self.wifi_device = client.wifi_device
-        if self.wifi_device:
-            bulk_connect(
-                self.wifi_device,
-                {
-                    "scanning": self.on_scan,
-                    "changed": lambda *_: self.refresh_wifi_list(),
-                },
-            )
+        if not self.wifi_device or self._wifi_connected == self.wifi_device:
+            return
+
+        bulk_connect(
+            self.wifi_device,
+            {
+                "scanning": self.on_scan,
+                "changed": lambda *_: self.refresh_wifi_list(),
+            },
+        )
+        self._wifi_connected = self.wifi_device
 
     def build_wifi_options(self):
         self.refresh_wifi_list()
@@ -255,6 +260,7 @@ class WifiToggle(QSChevronButton):
             **kwargs,
         )
         self.client = NetworkService()
+        self._bound_wifi = None
         self.client.connect("device-ready", self.update_action_button)
 
         self.connect("action-clicked", self.on_action)
@@ -263,15 +269,17 @@ class WifiToggle(QSChevronButton):
         wifi = client.wifi_device
 
         if wifi:
-            bulk_connect(
-                wifi,
-                {
-                    "notify::enabled": lambda *_: self.set_active_style(
-                        wifi.get_property("enabled")
-                    ),
-                    "changed": self.update_status,
-                },
-            )
+            if self._bound_wifi != wifi:
+                bulk_connect(
+                    wifi,
+                    {
+                        "notify::enabled": lambda *_: self.set_active_style(
+                            wifi.get_property("enabled")
+                        ),
+                        "changed": self.update_status,
+                    },
+                )
+                self._bound_wifi = wifi
 
             self.action_icon.set_label(
                 network_icon_to_text_icons.get(

@@ -402,8 +402,6 @@ class Ethernet(Service):
         ):
             self._device.connect(f"notify::{names}", lambda *_: self.notifier(names))
 
-        self._device.connect("notify::speed", lambda *_: print(_))
-
     def notifier(self, names):
         self.notify(names)
         self.emit("changed")
@@ -419,6 +417,7 @@ class NetworkService(SingletonService):
         self._client: NM.Client | None = None
         self.wifi_device: Wifi | None = None
         self.ethernet_device: Ethernet | None = None
+        self._last_primary_device: Literal["wifi", "wired"] | None = None
         super().__init__(**kwargs)
         NM.Client.new_async(
             cancellable=None,
@@ -428,6 +427,14 @@ class NetworkService(SingletonService):
 
     def _init_network_client(self, client: NM.Client, task: Gio.Task, **kwargs):
         self._client = client
+
+        for signal_name in (
+            "notify::primary-connection",
+            "notify::connectivity",
+            "notify::wireless-enabled",
+        ):
+            self._client.connect(signal_name, self._on_client_state_changed)
+
         wifi_device: NM.DeviceWifi | None = self._get_device(NM.DeviceType.WIFI)  # type: ignore
         ethernet_device: NM.DeviceEthernet | None = self._get_device(
             NM.DeviceType.ETHERNET
@@ -441,7 +448,20 @@ class NetworkService(SingletonService):
             self.ethernet_device = Ethernet(client=self._client, device=ethernet_device)
             self.emit("device-ready")
 
+        self._notify_primary_device_changed(force=True)
+
+    def _on_client_state_changed(self, *_):
+        self._notify_primary_device_changed()
+
+    def _notify_primary_device_changed(self, force: bool = False):
+        current_primary_device = self._get_primary_device()
+        if not force and current_primary_device == self._last_primary_device:
+            return
+
+        self._last_primary_device = current_primary_device
         self.notify("primary-device")
+        # Keep existing refresh contract used by quick settings consumers.
+        self.emit("device-ready")
 
     def _get_device(self, device_type) -> Any:
         devices: list[NM.Device] = self._client.get_devices()  # type: ignore
