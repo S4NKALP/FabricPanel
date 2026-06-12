@@ -5,16 +5,7 @@
 
 #clip-menu {
   #search-entry {
-    font-weight: bold;
-    background-color: theme.$background;
-    color: theme.$text-main;
-    border-radius: 12px;
-    padding: 10px;
-
-    selection {
-      color: theme.$background;
-      background-color: theme.$text-main;
-    }
+    @extend %entry_default;
   }
 
   #close-button,
@@ -83,14 +74,10 @@
 }
 
 #clipboard {
-  @include common.widget_border(
-    variable.$bar-widgets-clipboard-border-radius,
+  @include common.widget_border(variable.$bar-widgets-clipboard-border-radius,
     variable.$bar-widgets-clipboard-border-enabled,
-    variable.$bar-widgets-clipboard-border-width
-  );
+    variable.$bar-widgets-clipboard-border-width );
 
-  @include common.nerd-icon(
-    variable.$bar-widgets-clipboard-icon_size,
-    variable.$bar-widgets-clipboard-spacing
-  );
+  @include common.nerd-icon(variable.$bar-widgets-clipboard-icon_size,
+    variable.$bar-widgets-clipboard-spacing );
 }

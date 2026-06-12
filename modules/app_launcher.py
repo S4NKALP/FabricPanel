@@ -21,8 +21,10 @@ class LauncherConfig:
     # Only essential constants
     DEFAULT_WIDTH = 280
     DEFAULT_HEIGHT = 320
-    DEFAULT_ICON_SIZE = 30
+    DEFAULT_ICON_SIZE = 35
     DEFAULT_GRID_COLUMNS = 3
+    DEFAULT_GRID_SPACING = 12
+    MIN_GRID_ITEM_SIZE = 84
     DEFAULT_ANCHOR = "center"
     DEFAULT_LAYOUT = "list"
 
@@ -44,6 +46,17 @@ class LauncherConfig:
         grid_cols = self.raw_config.get("grid_columns", self.DEFAULT_GRID_COLUMNS)
         self.grid_columns = max(1, min(10, grid_cols))
 
+        grid_spacing = self.raw_config.get("grid_spacing", self.DEFAULT_GRID_SPACING)
+        self.grid_spacing = max(0, int(grid_spacing))
+
+        # Account for launcher content horizontal padding (10px * 2).
+        usable_width = max(0, self.width - 20)
+        total_gaps = self.grid_spacing * max(0, self.grid_columns - 1)
+        self.grid_item_size = max(
+            self.MIN_GRID_ITEM_SIZE,
+            (usable_width - total_gaps) // self.grid_columns,
+        )
+
         self.anchor = self.raw_config.get("anchor", self.DEFAULT_ANCHOR)
         self.show_tooltips = bool(self.raw_config.get("tooltip", False))
 
@@ -57,46 +70,66 @@ class AppWidgetFactory:
     ) -> Button:
         """Create an application widget based on layout mode."""
         if layout_mode == "grid":
-            child_widget = AppWidgetFactory._create_grid_layout(app, icon_size, config)
+            child_widget = AppWidgetFactory._create_grid_layout(app, icon_size)
         else:
-            child_widget = AppWidgetFactory._create_list_layout(app, icon_size, config)
+            child_widget = AppWidgetFactory._create_list_layout(app, icon_size)
 
         return Button(
             style_classes=["launcher-button"],
             child=child_widget,
             tooltip_text=(app.description if config.show_tooltips else None),
+            h_expand=layout_mode == "grid",
+            v_expand=False,
+            size_request=(config.grid_item_size, config.grid_item_size)
+            if layout_mode == "grid"
+            else None,
         )
 
     @staticmethod
     def _create_grid_layout(
-        app: DesktopApp, icon_size: int, config: LauncherConfig
+        app: DesktopApp,
+        icon_size: int,
     ) -> Box:
         """Create vertical layout for grid mode."""
+        label = Label(
+            label=app.display_name or "Unknown",
+            v_align="center",
+            h_align="center",
+            justification="center",
+            line_wrap="word-char",
+            chars_width=12,
+            max_chars_width=12,
+            ellipsization="end",
+            style_classes=["grid-item-label"],
+        )
+        label.set_lines(2)
+
         return Box(
+            name="grid-item",
             orientation="v",
             spacing=4,
+            h_expand=True,
+            v_expand=True,
+            h_align="fill",
+            v_align="fill",
             children=[
                 Image(
                     pixbuf=app.get_icon_pixbuf(icon_size),
                     h_align="center",
                     name="icon",
                 ),
-                Label(
-                    label=app.display_name or "Unknown",
-                    v_align="center",
-                    h_align="center",
-                    max_width_chars=10,
-                    ellipsization="end",
-                ),
+                label,
             ],
         )
 
     @staticmethod
     def _create_list_layout(
-        app: DesktopApp, icon_size: int, config: LauncherConfig
+        app: DesktopApp,
+        icon_size: int,
     ) -> Box:
         """Create horizontal layout for list mode."""
         return Box(
+            name="list-item",
             orientation="h",
             spacing=12,
             style_classes=["launcher-list-item"],
@@ -163,7 +196,10 @@ class AppLauncher(PopupWindow):
         # Create widgets - viewport depends on layout mode
         if self.config.layout_mode == "grid":
             self.viewport = Grid(
-                column_homogeneous=True, row_homogeneous=True, row_spacing=20
+                column_homogeneous=True,
+                row_homogeneous=False,
+                column_spacing=self.config.grid_spacing,
+                row_spacing=self.config.grid_spacing,
             )
         else:  # list mode
             self.viewport = Box(spacing=2, orientation="v")
@@ -184,6 +220,7 @@ class AppLauncher(PopupWindow):
             Gtk.EntryIconPosition.SECONDARY, "edit-clear"
         )
 
+        self.search_entry.props.xalign = 0.1
         # Connect handler for icon clicks
         self.search_entry.connect("icon-press", self.on_icon_press)
 
@@ -259,7 +296,9 @@ class AppLauncher(PopupWindow):
                 try:
                     self.viewport = Grid(
                         column_homogeneous=True,
-                        row_homogeneous=True,
+                        row_homogeneous=False,
+                        column_spacing=self.config.grid_spacing,
+                        row_spacing=self.config.grid_spacing,
                     )
                     self.scrolled_window.set_child(self.viewport)
                 except Exception as fallback_error:
@@ -342,6 +381,8 @@ class AppLauncher(PopupWindow):
         app_widget.on_clicked = lambda *_: (app.launch(), self.close_launcher())
 
         if self.config.layout_mode == "grid":
+            app_widget.set_hexpand(True)
+            app_widget.set_halign(Gtk.Align.FILL)
             row = self._grid_position // self.config.grid_columns
             col = self._grid_position % self.config.grid_columns
             self.viewport.attach(app_widget, col, row, 1, 1)

@@ -3,12 +3,9 @@
 @use "variable";
 @use "common";
 
-button.launcher-button {
-  border-radius: variable.$radius-large;
+.launcher-button {
+  border-radius: 10px;
 
-  .launcher-list-item {
-    padding: 8px 20px;
-  }
 
   #icon {
     -gtk-icon-effect: highlight;
@@ -16,7 +13,12 @@ button.launcher-button {
 
   &:hover,
   &:focus {
-    background-color: theme.$background;
+    background-color: theme.$accent-teal;
+
+    label {
+      color: black;
+
+    }
   }
 
   &:focus {
@@ -24,26 +26,34 @@ button.launcher-button {
       color: theme.$text-main;
     }
   }
+
+  #grid-item {
+    padding: 8px;
+  }
 }
 
 #launcher-prompt {
-  font-size: 12px;
+  @extend %entry_default;
+
+  image.left {
+    padding-left: 10px;
+  }
+
+  image.right {
+    padding-right: 10px;
+  }
 }
 
 #launcher {
-  @include common.widget_border(
-    variable.$modules-app_launcher-border-radius,
+  @include common.widget_border(variable.$modules-app_launcher-border-radius,
     variable.$modules-app_launcher-border-enabled,
-    variable.$modules-app_launcher-border-width
-  );
+    variable.$modules-app_launcher-border-width );
 
-  @include common.module-shadow(
-    variable.$modules-app_launcher-shadow-enabled,
+  @include common.module-shadow(variable.$modules-app_launcher-shadow-enabled,
     variable.$modules-app_launcher-shadow-offset,
     variable.$modules-app_launcher-shadow-blur,
     variable.$modules-app_launcher-shadow-spread,
-    variable.$modules-app_launcher-shadow-opacity
-  );
+    variable.$modules-app_launcher-shadow-opacity );
 
   &-prompt {
     border-bottom: 1px solid theme.$surface-disabled;
