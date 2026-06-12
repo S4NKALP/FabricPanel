@@ -73,7 +73,7 @@ class ClipHistoryMenu(Box):
 
         self.search_entry = Entry(
             name="search-entry",
-            placeholder="Search Clipboard History",
+            placeholder="search history",
             h_expand=True,
             on_activate=self.use_selected_item,
             on_key_press_event=self.on_search_entry_key_press,
@@ -130,6 +130,9 @@ class ClipHistoryMenu(Box):
     def on_icon_press(self, entry, icon_pos, event):
         if icon_pos == Gtk.EntryIconPosition.SECONDARY:
             self.search_entry.set_text("")
+
+    def _make_launcher(self, flags):
+        return Gio.SubprocessLauncher.new(flags)
 
     def _load_next_batch(self):
         if self.loading or self.items_loaded >= self.max_items:
@@ -198,7 +201,7 @@ class ClipHistoryMenu(Box):
         """Load clipboard items asynchronously without blocking UI"""
         try:
             # Use Gio.Subprocess for true async execution
-            launcher = Gio.SubprocessLauncher.new(
+            launcher = self._make_launcher(
                 Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
             )
             proc = launcher.spawnv(["cliphist", "list"])
@@ -240,15 +243,15 @@ class ClipHistoryMenu(Box):
         self.selected_index = -1  # Reset selection
 
         # Filter items if search text is provided
-        filtered_items = []
-        for item in self.clipboard_items:
-            # Extract just the content part (after the first tab)
-            content = item.split("\t", 1)[1] if "\t" in item else item
-            if filter_text.lower() in content.lower():
-                filtered_items.append(item)
+        needle = filter_text.lower()
+        filtered_items = [
+            item
+            for item in self.clipboard_items
+            if needle in (item.split("\t", 1)[1] if "\t" in item else item).lower()
+        ]
 
         self.filtered_items = filtered_items
-
+        self.viewport.v_align = "start"  # Align to top when showing items
         # Show message if no items are found
         if not filtered_items:
             self.filtered_items = []
@@ -280,6 +283,7 @@ class ClipHistoryMenu(Box):
 
             container.add(image)
             container.add(label)
+            self.viewport.v_align = "center"
             self.viewport.add(container)
             return
 
@@ -393,7 +397,7 @@ class ClipHistoryMenu(Box):
             return
 
         try:
-            launcher = Gio.SubprocessLauncher.new(
+            launcher = self._make_launcher(
                 Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
             )
             proc = launcher.spawnv(["cliphist", "decode", item_id])
@@ -458,10 +462,9 @@ class ClipHistoryMenu(Box):
 
     def is_file_image(self, content):
         # Check for common image data patterns
-        if content.startswith("file:///") and content.endswith(
+        return content.startswith("file:///") and content.endswith(
             (".png", ".jpg", ".jpeg", ".bmp", ".gif")
-        ):
-            return True
+        )
 
     def is_image_data(self, content):
         """Determine if clipboard content is likely an image"""
@@ -484,7 +487,7 @@ class ClipHistoryMenu(Box):
     def paste_item(self, item_id):
         """Copy the selected item to the clipboard asynchronously"""
         try:
-            launcher = Gio.SubprocessLauncher.new(
+            launcher = self._make_launcher(
                 Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
             )
             proc = launcher.spawnv(["cliphist", "decode", item_id])
@@ -498,7 +501,7 @@ class ClipHistoryMenu(Box):
             _, stdout, _ = proc.communicate_finish(result)
             if stdout:
                 # Now pipe to wl-copy
-                launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.STDIN_PIPE)
+                launcher = self._make_launcher(Gio.SubprocessFlags.STDIN_PIPE)
                 wl_proc = launcher.spawnv(["wl-copy"])
                 wl_proc.communicate_async(
                     GLib.Bytes.new(stdout.get_data()),
@@ -520,7 +523,7 @@ class ClipHistoryMenu(Box):
     def delete_item(self, item_id):
         """Delete the selected clipboard item asynchronously"""
         try:
-            launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.NONE)
+            launcher = self._make_launcher(Gio.SubprocessFlags.NONE)
             proc = launcher.spawnv(["cliphist", "delete", item_id])
             proc.wait_async(None, self._on_delete_complete, None)
         except Exception as e:
@@ -539,7 +542,7 @@ class ClipHistoryMenu(Box):
     def clear_history(self, *_):
         """Clear all clipboard history asynchronously"""
         try:
-            launcher = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.NONE)
+            launcher = self._make_launcher(Gio.SubprocessFlags.NONE)
             proc = launcher.spawnv(["cliphist", "wipe"])
             proc.wait_async(None, self._on_clear_complete, None)
         except Exception as e:
@@ -650,35 +653,30 @@ class ClipHistoryMenu(Box):
 
     def use_selected_item(self, *_):
         """Use (paste) the selected clipboard item"""
-        if not self.filtered_items:
-            return
-
-        if self.selected_index == -1:
-            self.update_selection(0)
-
-        if self.selected_index == -1 or self.selected_index >= len(self.filtered_items):
-            return
-
-        # Get the item ID from the first part before the tab
-        item_line = self.filtered_items[self.selected_index]
-        item_id = item_line.split("\t", 1)[0]
-        self.paste_item(item_id)
+        item_id = self._get_selected_item_id()
+        if item_id is not None:
+            self.paste_item(item_id)
 
     def delete_selected_item(self):
         """Delete the selected clipboard item"""
+        item_id = self._get_selected_item_id()
+        if item_id is not None:
+            self.delete_item(item_id)
+
+    def _get_selected_item_id(self):
+        """Resolve the currently selected clipboard item id."""
         if not self.filtered_items:
-            return
+            return None
 
         if self.selected_index == -1:
             self.update_selection(0)
 
         if self.selected_index == -1 or self.selected_index >= len(self.filtered_items):
-            return
+            return None
 
         # Get the item ID from the first part before the tab
         item_line = self.filtered_items[self.selected_index]
-        item_id = item_line.split("\t", 1)[0]
-        self.delete_item(item_id)
+        return item_line.split("\t", 1)[0]
 
     def on_item_key_press(self, widget, event, item_id):
         """Handle key press events on clipboard items"""

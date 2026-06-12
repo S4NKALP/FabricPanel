@@ -16,13 +16,13 @@
 #desktop-clock-box {
   margin: 0 15rem 15rem 15rem;
 
-  #clock>label {
+  #clock > label {
     font-size: 9rem;
     font-weight: 600;
     @extend %desktop-widget;
   }
 
-  #date>label {
+  #date > label {
     @extend %title_1;
     @extend %desktop-widget;
   }
@@ -37,7 +37,13 @@
   min-width: variable.$bar-widgets-spacing-size;
 }
 
-@mixin widget-shell($border-radius, $border-enabled, $border-width, $icon-size: null, $spacing: null) {
+@mixin widget-shell(
+  $border-radius,
+  $border-enabled,
+  $border-width,
+  $icon-size: null,
+  $spacing: null
+) {
   @include mixins.widget-border($border-radius, $border-enabled, $border-width);
 
   @if $icon-size != null and $spacing != null {

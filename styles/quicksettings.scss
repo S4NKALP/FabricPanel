@@ -8,10 +8,12 @@ $slider-height: 12px;
 $toggler-radius: variable.$radius * 1.4;
 
 @mixin setting-slider($min-length) {
-  @include common.slider($highlight-color: theme.$accent-blue,
+  @include common.slider(
+    $highlight-color: theme.$accent-blue,
     $knob: variable.$bar-widgets-quick_settings-sliders-knob,
     $min-length: $min-length,
-    $height: variable.$bar-widgets-quick_settings-sliders-height );
+    $height: variable.$bar-widgets-quick_settings-sliders-height
+  );
 
   &.overamplified trough highlight {
     background-color: theme.$accent-red;
@@ -24,12 +26,16 @@ $toggler-radius: variable.$radius * 1.4;
 }
 
 #quick_settings {
-  @include common.widget_border(variable.$bar-widgets-quick_settings-border-radius,
+  @include common.widget_border(
+    variable.$bar-widgets-quick_settings-border-radius,
     variable.$bar-widgets-quick_settings-border-enabled,
-    variable.$bar-widgets-quick_settings-border-width );
+    variable.$bar-widgets-quick_settings-border-width
+  );
 
-  @include common.nerd-icon(variable.$bar-widgets-quick_settings-icon_size,
-    variable.$bar-widgets-quick_settings-spacing );
+  @include common.nerd-icon(
+    variable.$bar-widgets-quick_settings-icon_size,
+    variable.$bar-widgets-quick_settings-spacing
+  );
 }
 
 /************** QUICKSETTINGS MENU **************/
@@ -215,7 +221,6 @@ $toggler-radius: variable.$radius * 1.4;
       border-radius: variable.$radius;
       padding: common.toEm(8);
 
-
       .submenu-title-box {
         margin-bottom: 10px;
         padding: common.toEm(5);
@@ -235,7 +240,6 @@ $toggler-radius: variable.$radius * 1.4;
           margin-left: 5px;
         }
       }
-
 
       #bluetooth-device-row {
         margin-top: 5px;
@@ -263,26 +267,21 @@ $toggler-radius: variable.$radius * 1.4;
         &:active {
           background-color: theme.$text-main;
 
-          &>* {
+          & > * {
             color: theme.$background;
           }
         }
-
-
       }
-
 
       .wifi-ap-button {
         padding: common.toEm(7) common.toEm(20) common.toEm(7) common.toEm(5);
         border-radius: variable.$radius;
-
 
         &:hover {
           @extend %widget_hover;
           color: theme.$background-dark;
         }
       }
-
 
       #bluetooth-device-box {
         &.submenu-button {
@@ -411,8 +410,10 @@ $toggler-radius: variable.$radius * 1.4;
 }
 
 #hyprsunset-sub-menu {
-  @include common.slider($highlight-color: theme.$accent-blue,
+  @include common.slider(
+    $highlight-color: theme.$accent-blue,
     $knob: variable.$bar-widgets-quick_settings-sliders-knob,
     $min-length: 320px,
-    $height: variable.$bar-widgets-quick_settings-sliders-height );
+    $height: variable.$bar-widgets-quick_settings-sliders-height
+  );
 }
