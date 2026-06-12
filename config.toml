@@ -321,7 +321,6 @@ step_size = 5
 
 [widgets.weather]
 location = "kathmandu"
-label = true
 label_format = "{temperature} {condition}"
 tooltip = true
 expanded = true

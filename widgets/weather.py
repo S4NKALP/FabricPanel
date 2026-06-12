@@ -13,9 +13,7 @@ from shared.widget_container import ButtonWidget
 from utils.constants import ASSETS_DIR
 from utils.functions import check_if_day
 from utils.weather_icons import WEATHER_ICONS
-from utils.widget_utils import (
-    nerd_font_icon,
-)
+from utils.widget_utils import nerd_font_icon
 
 weather_service = WeatherService()
 
@@ -223,7 +221,6 @@ class WeatherMenu(Box, BaseWeatherWidget):
 
         # Create a grid to display the hourly forecast
         self.forecast_box = Grid(
-            row_spacing=10,
             column_spacing=20,
             name="weather-grid",
         )
@@ -312,9 +309,14 @@ class WeatherMenu(Box, BaseWeatherWidget):
                     label=self.get_temperature_hour(col),
                     h_align="center",
                 )
-                self.forecast_box.attach(hour, col, 0, 1, 1)
-                self.forecast_box.attach(icon, col, 1, 1, 1)
-                self.forecast_box.attach(temp, col, 2, 1, 1)
+
+                forecast_col = Box(
+                    orientation="v",
+                    spacing=5,
+                    h_align="center",
+                    children=[hour, icon, temp],
+                )
+                self.forecast_box.attach(forecast_col, col, 0, 1, 1)
 
     def get_weather_asset(self, code: int, time_str: str | None = None) -> str:
         is_day = check_if_day(
@@ -357,21 +359,18 @@ class WeatherWidget(ButtonWidget, BaseWeatherWidget, PopoverMixin):
 
         self.update_time = datetime.now()
 
-        if self.config.get("label", True):
-            self.weather_label = Label(
-                label="Fetching..",
-                style_classes=["panel-text"],
-            )
+        self.weather_label = Label(
+            label="Fetching..",
+            style_classes=["panel-text"],
+        )
 
-            if self.config.get("hover_reveal", True):
-                self.revealer = Revealer(
-                    child=self.weather_label,
-                    transition_duration=self.config.get("reveal_duration", 500),
-                    transition_type="slide_right",
-                )
-                self.container_box.add(self.revealer)
-            else:
-                self.container_box.add(self.weather_label)
+        self.revealer = Revealer(
+            child=self.weather_label,
+            transition_duration=self.config.get("reveal_duration", 500),
+            transition_type="slide_right",
+            reveal_child=not self.config.get("hover_reveal", True),
+        )
+        self.container_box.add(self.revealer)
 
         self._update_ui(forced=True)
 
@@ -382,7 +381,7 @@ class WeatherWidget(ButtonWidget, BaseWeatherWidget, PopoverMixin):
 
         if data is None:
             self.weather_label.set_label("")
-            self.weather_icon.set_label("")
+            self.weather_icon.set_markup("")
             if self.config.get("tooltip", False) and self.tooltips_enabled:
                 self.set_tooltip_text("Error fetching weather data, try again later.")
             return
@@ -404,18 +403,17 @@ class WeatherWidget(ButtonWidget, BaseWeatherWidget, PopoverMixin):
             f'<span foreground="{weather_icon["color"]}">{text_icon}</span>'
         )
 
-        if self.config.get("label", True):
-            label_text = self.config.get("label_format", "{location}").format(
-                location=self.data["location"],
-                temperature=self.get_temperature(),
-                condition=self.get_description(),
-                humidity=self.get_humidity(),
-                wind_speed=self.get_wind_speed(),
-            )
+        label_text = self.config.get("label_format", "{location}").format(
+            location=self.data["location"],
+            temperature=self.get_temperature(),
+            condition=self.get_description(),
+            humidity=self.get_humidity(),
+            wind_speed=self.get_wind_speed(),
+        )
 
-            self.weather_label.set_markup(
-                f'<span foreground="{weather_icon["color"]}">{label_text}</span>'
-            )
+        self.weather_label.set_markup(
+            f'<span foreground="{weather_icon["color"]}">{label_text}</span>'
+        )
 
         # Update the tooltip with the city and weather condition if enabled
         if self.config.get("tooltip", False) and self.tooltips_enabled:

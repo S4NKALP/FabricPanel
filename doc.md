@@ -7,7 +7,7 @@
     - **`icon`**: `str` (default: "view-app-grid-symbolic")
     - **`icon_size`**: `int` (default: 16)
     - **`tooltip`**: `bool` (default: true)
-  - **`cliphist`**: `object`
+  - **`clipboard`**: `object`
     - **`icon`**: `str` (default: "")
     - **`label`**: `bool` (default: false)
     - **`tooltip`**: `bool` (default: true)
@@ -60,7 +60,6 @@
     - **`label`**: `bool` (default: true)
     - **`tooltip`**: `bool` (default: true)
   - **`brightness`**: `object`
-    - **`label`**: `bool` (default: true)
     - **`tooltip`**: `bool` (default: true)
     - **`step_size`**: `int` (default: 5)
   - **`wallpaper`**: `object`
@@ -253,12 +252,10 @@
     - **`snap`**: `bool` (default: false)
     - **`brew`**: `bool` (default: false)
   - **`volume`**: `object`
-    - **`label`**: `bool` (default: true)
     - **`tooltip`**: `bool` (default: true)
     - **`step_size`**: `int` (default: 5)
   - **`weather`**: `object`
     - **`location`**: `str` (default: "")
-    - **`label`**: `bool` (default: true)
     - **`label_format`**: `str` (default: "{condition} {temperature}")
     - **`tooltip`**: `bool` (default: true)
     - **`expanded`**: `bool` (default: true)

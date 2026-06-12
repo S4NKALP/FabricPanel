@@ -920,11 +920,6 @@
 							"default": "kathmandu",
 							"description": "The location for which to display the weather information."
 						},
-						"label": {
-							"type": "boolean",
-							"default": true,
-							"description": "Determines whether to show the label for the weather information."
-						},
 						"tooltip": {
 							"type": "boolean",
 							"default": true,
@@ -977,7 +972,6 @@
 					},
 					"required": [
 						"location",
-						"label",
 						"tooltip",
 						"temperature_unit",
 						"label_format",
