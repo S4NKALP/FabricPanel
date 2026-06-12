@@ -31,14 +31,14 @@ class MprisWidget(ButtonWidget, PopoverMixin):
             max_width=char_limit_to_px(self, self.config.get("truncation_size", 30)),
         )
 
-        self.cover = Box(style_classes=["cover"])
-        self.progress = Box(style_classes=["mpris-progress"])
+        self.cover = Box(name="mpris-cover")
+        self.progress = Box(name="mpris-progress")
         self.meta_box = Box(
+            name="mpris-meta-box",
             orientation="v",
             spacing=2,
             h_expand=True,
             v_align="start",
-            style_classes=["mpris-meta"],
             children=[self.label, self.progress],
         )
         self._set_default_values()
@@ -83,10 +83,7 @@ class MprisWidget(ButtonWidget, PopoverMixin):
             break
 
         self.setup_popover(
-            lambda: Box(
-                style_classes=["mpris-box"],
-                children=[PlayerBoxStack(self.mpris_manager, config=config)],
-            )
+            lambda: PlayerBoxStack(self.mpris_manager, config=config),
         )
         self._start_progress_timer()
 
