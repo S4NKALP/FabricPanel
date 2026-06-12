@@ -100,7 +100,6 @@ WindowCount = TypedDict(
     {
         **BaseConfig.__annotations__,
         "label_format": str,
-        "show_icon": bool,
         "hide_when_zero": bool,
     },
 )

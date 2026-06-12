@@ -3,7 +3,6 @@ from fabric.utils import bulk_connect, logger
 from fabric.widgets.label import Label
 
 from shared.widget_container import ButtonWidget
-from utils.widget_utils import nerd_font_icon
 
 
 class WindowCountWidget(ButtonWidget):
@@ -16,13 +15,6 @@ class WindowCountWidget(ButtonWidget):
 
         self.count_label = Label(label="0", style_classes=["panel-text"])
         self.container_box.add(self.count_label)
-
-        if self.config.get("show_icon", True):
-            self.icon = nerd_font_icon(
-                icon=self.config.get("icon"),
-                props={"style_classes": ["panel-font-icon"]},
-            )
-            self.container_box.add(self.icon)
 
         bulk_connect(
             self._hyprland_connection,

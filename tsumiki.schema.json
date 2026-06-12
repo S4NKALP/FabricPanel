@@ -1441,10 +1441,6 @@
 				"window_count": {
 					"type": "object",
 					"properties": {
-						"icon": {
-							"type": "string",
-							"default": ""
-						},
 						"label_format": {
 							"type": "string",
 							"default": "[{count}]"
@@ -1452,10 +1448,6 @@
 						"tooltip": {
 							"type": "boolean",
 							"default": true
-						},
-						"show_icon": {
-							"type": "boolean",
-							"default": false
 						},
 						"hide_when_zero": {
 							"type": "boolean",

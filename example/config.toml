@@ -199,11 +199,9 @@ tooltip = true
 show_icon = false
 
 [widgets.window_count]
-icon = ""
-label_format = "[{count}]"
+label_format = " [{count}]"
 hide_when_zero = true
 tooltip = true
-show_icon = false
 
 [widgets.language]
 icon = ""
