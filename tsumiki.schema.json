@@ -213,6 +213,39 @@
 							"default": true,
 							"description": "Determines whether to show the confirmation dialog."
 						},
+						"item_shortcuts": {
+							"type": "object",
+							"description": "Optional key mapping for power menu items (e.g. shutdown = \"s\").",
+							"properties": {
+								"shutdown": {
+									"type": "string",
+									"default": "s"
+								},
+								"reboot": {
+									"type": "string",
+									"default": "r"
+								},
+								"hibernate": {
+									"type": "string",
+									"default": "h"
+								},
+								"suspend": {
+									"type": "string",
+									"default": "u"
+								},
+								"lock": {
+									"type": "string",
+									"default": "l"
+								},
+								"logout": {
+									"type": "string",
+									"default": "o"
+								}
+							},
+							"additionalProperties": {
+								"type": "string"
+							}
+						},
 						"buttons": {
 							"type": "object",
 							"properties": {

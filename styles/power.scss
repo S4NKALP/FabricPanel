@@ -35,6 +35,18 @@
     padding: common.toEm(80) common.toEm(120);
   }
 
+  .power-shortcut-label {
+    margin-top: 8px;
+    margin-left: 8px;
+    min-width: 1.2em;
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-size: 12px;
+    font-weight: 700;
+    background-color: rgba(255, 255, 255, 0.16);
+    color: theme.$text-secondary;
+  }
+
   label {
     margin-top: 10px;
     font-size: 14px;

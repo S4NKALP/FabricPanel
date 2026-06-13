@@ -727,6 +727,43 @@ def toggle_command(command: str, full_command: str):
         )
 
 
+def set_panel_visibility(self, popup_visible: bool):
+    from fabric import Application
+
+    app = Application.get_default()
+    if app is None:
+        return
+
+    if popup_visible:
+        cached_visibility: list[tuple[Gtk.Widget, bool]] = []
+        for window in app.get_windows():
+            if window is self or window.get_name() != "panel":
+                continue
+            visible = window.get_visible()
+            cached_visibility.append((window, visible))
+
+        self._bar_visibility = cached_visibility
+
+        def hide_bars():
+            for window, was_visible in self._bar_visibility:
+                if was_visible:
+                    window.set_visible(False)
+            return False
+
+        GLib.idle_add(hide_bars)
+        return
+
+    cached_visibility = list(self._bar_visibility)
+    self._bar_visibility = []
+
+    def restore_bars():
+        for window, was_visible in cached_visibility:
+            window.set_visible(was_visible)
+        return False
+
+    GLib.idle_add(restore_bars)
+
+
 def char_limit_to_px(label_widget, char_limit: int) -> int:
     n = max(1, int(char_limit))
     sample = "M" * n  # conservative (wide) mapping

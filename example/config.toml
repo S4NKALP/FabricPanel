@@ -244,6 +244,14 @@ show_icon = true
 label = false
 confirm = true
 
+[widgets.power.item_shortcuts]
+shutdown = "s"
+reboot = "r"
+hibernate = "h"
+suspend = "u"
+lock = "l"
+logout = "o"
+
 [widgets.power.buttons]
 shutdown = "systemctl poweroff"
 reboot = "systemctl reboot"
