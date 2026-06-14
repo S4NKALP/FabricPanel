@@ -66,7 +66,7 @@ class Wifi(Service):
 
         self._client.connect(
             "notify::wireless-enabled",
-            lambda *args: self.notifier("enabled", args),
+            lambda *_: self.notifier("enabled"),
         )
         if self._device:
             bulk_connect(
@@ -102,7 +102,7 @@ class Wifi(Service):
             return
 
         self._ap_signal = self._ap.connect(
-            "notify::strength", lambda *args: self.ap_update()
+            "notify::strength", lambda *_: self.ap_update()
         )  # type: ignore
 
     def toggle_wifi(self):
@@ -400,7 +400,10 @@ class Ethernet(Service):
             "speed",
             "state",
         ):
-            self._device.connect(f"notify::{names}", lambda *_: self.notifier(names))
+            self._device.connect(f"notify::{names}", self._on_device_notify, names)
+
+    def _on_device_notify(self, _device, _param_spec, prop_name: str):
+        self.notifier(prop_name)
 
     def notifier(self, names):
         self.notify(names)

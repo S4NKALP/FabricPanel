@@ -1,4 +1,5 @@
 
+may have issue
 4. Medium: popover lifecycle cleanup appears incomplete; pooling path is unused
 - Evidence: popover manager defines window pool return API, but no caller exists: popover.py.
 - Popover creation always grabs window and attaches content: popover.py, popover.py, popover.py.
