@@ -197,15 +197,8 @@ class WifiSubMenu(QuickSubMenu):
             and self.wifi_device.is_active_ap(ap_bssid)
         )
         if is_active:
-            ap_container.add(
-                Button(
-                    label="-",
-                    style_classes=["wifi-disconnect-button"],
-                    v_align="center",
-                    h_align="end",
-                    on_clicked=lambda btn: self.on_disconnect_clicked(ap),
-                )
-            )
+            security_label = f"{get_text_icon('ui.tick')} {security_label}"
+            ap_row.add_style_class("active")
 
         wifi_item = Gtk.ListBoxRow(visible=True)
 

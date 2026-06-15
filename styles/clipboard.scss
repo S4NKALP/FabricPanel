@@ -4,12 +4,16 @@
 @use "variable";
 
 #clipboard {
-  @include common.widget_border(variable.$bar-widgets-clipboard-border-radius,
+  @include common.widget_border(
+    variable.$bar-widgets-clipboard-border-radius,
     variable.$bar-widgets-clipboard-border-enabled,
-    variable.$bar-widgets-clipboard-border-width );
+    variable.$bar-widgets-clipboard-border-width
+  );
 
-  @include common.nerd-icon(variable.$bar-widgets-clipboard-icon_size,
-    variable.$bar-widgets-clipboard-spacing );
+  @include common.nerd-icon(
+    variable.$bar-widgets-clipboard-icon_size,
+    variable.$bar-widgets-clipboard-spacing
+  );
 
   @keyframes loadSlot {
     0% {
@@ -79,7 +83,5 @@
     #clip-label {
       font-weight: bold;
     }
-
-
   }
 }

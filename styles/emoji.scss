@@ -3,16 +3,17 @@
 @use "common";
 @use "variable";
 
-
-
 #emoji_picker {
-  @include common.widget_border(variable.$bar-widgets-emoji_picker-border-radius,
+  @include common.widget_border(
+    variable.$bar-widgets-emoji_picker-border-radius,
     variable.$bar-widgets-emoji_picker-border-enabled,
-    variable.$bar-widgets-emoji_picker-border-width );
+    variable.$bar-widgets-emoji_picker-border-width
+  );
 
-  @include common.nerd-icon(variable.$bar-widgets-emoji_picker-icon_size,
-    variable.$bar-widgets-emoji_picker-spacing );
-
+  @include common.nerd-icon(
+    variable.$bar-widgets-emoji_picker-icon_size,
+    variable.$bar-widgets-emoji_picker-spacing
+  );
 
   // Animations
   @keyframes loadEmojiSlot {
@@ -41,8 +42,6 @@
       text-shadow: 0 4px 4px theme.$shadow-color;
     }
   }
-
-
 
   &-menu {
     #search-entry {
@@ -108,7 +107,5 @@
         }
       }
     }
-
-
   }
 }

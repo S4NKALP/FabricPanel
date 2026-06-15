@@ -18,6 +18,7 @@ from utils.icons import get_text_icon
 from utils.widget_utils import create_surface_from_widget, nerd_font_icon
 
 
+# fix the kanban :TODO
 class InlineEditor(Box):
     """A simple inline editor for editing text in a Gtk.TextView."""
 
