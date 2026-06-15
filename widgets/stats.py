@@ -1,7 +1,7 @@
 import json
 from time import monotonic
 
-from fabric.utils import exec_shell_command, exec_shell_command_async, idle_add
+from fabric.utils import exec_shell_command, exec_shell_command_async, idle_add, logger
 from fabric.widgets.label import Label
 
 import utils.functions as helpers
@@ -150,7 +150,7 @@ class GpuWidget(FabricatorBoundWidget, StatDisplayMixin):
             self._on_gpu_stats_received(json.dumps(data[0]))
 
         except Exception as e:
-            print(f"Error parsing JSON: {e}")
+            logger.error(f"Error parsing JSON: {e}")
 
         return True
 

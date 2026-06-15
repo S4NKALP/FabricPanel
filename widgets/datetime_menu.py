@@ -175,7 +175,7 @@ class DateNotificationMenu(Box):
         **kwargs,
     ):
         super().__init__(
-            name="datetime-menu",
+            name="date_time-menu",
             orientation="h",
             **kwargs,
         )
@@ -659,10 +659,10 @@ class DateNotificationMenu(Box):
 
 
 class DateTimeWidget(ButtonWidget, PopoverMixin):
-    """A widget to power off the system."""
+    """A widget to display the date and time."""
 
     def __init__(self, **kwargs):
-        super().__init__(name="datetime", **kwargs)
+        super().__init__(name="date_time", **kwargs)
 
         notification_config = self.config.get("notification", {})
 

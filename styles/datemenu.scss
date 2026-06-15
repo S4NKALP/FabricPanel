@@ -3,7 +3,7 @@
 @use "common";
 @use "variable";
 
-#datetime {
+#date_time {
   @include common.widget-border(
     variable.$bar-widgets-date_time-border-radius,
     variable.$bar-widgets-date_time-border-enabled,

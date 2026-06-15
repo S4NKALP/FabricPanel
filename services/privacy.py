@@ -186,6 +186,3 @@ class PrivacyIndicatorService(SingletonService):
             "camera": self.detect_camera_apps(),
             "screen": self._detect_screen_share_apps(nodes, linked_node_ids),
         }
-
-
-# print(PrivacyUsageDetector().detect_privacy_usage())
