@@ -99,7 +99,7 @@ class WeatherMenu(Box, BaseWeatherWidget):
         **kwargs,
     ):
         super().__init__(
-            style_classes=["weather-menu"],
+            name="weather-menu",
             orientation="v",
             h_expand=True,
             spacing=5,

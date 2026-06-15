@@ -16,66 +16,68 @@ $base_margin: common.toEm(4);
     variable.$bar-widgets-weather-icon_size,
     variable.$bar-widgets-weather-spacing
   );
-}
 
-.weather-menu {
-  padding: variable.$padding;
+  &-menu {
+    padding: variable.$padding;
 
-  #weather-expander {
-    arrow {
-      color: theme.$text-main;
-    }
-  }
-
-  #weather-header-grid {
-    // header
-    font-size: 11pt;
-    color: white;
-    font-weight: 500;
-
-    .header-label {
-      font-size: 0.87em;
+    #weather-expander {
+      arrow {
+        color: theme.$text-main;
+      }
     }
 
-    #condition {
-      font-size: 1.6em;
-      font-weight: 600;
-    }
-
-    .header-label#sunrise-sunset {
-      font-size: 0.8em;
+    #weather-header-grid {
+      // header
+      font-size: 11pt;
+      color: white;
       font-weight: 500;
-      color: color.mix(theme.$text-main, black, 80%);
+
+      .header-label {
+        font-size: 0.87em;
+
+        &#sunrise-sunset {
+          font-size: 0.8em;
+          font-weight: 500;
+          color: color.mix(theme.$text-main, black, 80%);
+        }
+      }
+
+      #condition {
+        font-size: 1.6em;
+        font-weight: 600;
+      }
+
+      .stats {
+        @extend .header-label;
+        margin: 0 10px 0 30px;
+      }
     }
 
-    .stats {
-      @extend .header-label;
-      margin: 0 10px 0 30px;
-    }
-  }
-
-  #weather-separator {
-    margin-top: 10px;
-    margin-bottom: 10px;
-    min-height: 2px;
-  }
-
-  // weather items
-  #weather-grid {
-    .weather-forecast-time {
-      font-weight: 500;
-      font-size: 10pt;
-      padding-top: variable.$padding;
-      padding-bottom: variable.$padding;
+    #weather-separator {
+      margin-top: 10px;
+      margin-bottom: 10px;
+      min-height: 2px;
     }
 
-    .weather-forecast-icon {
-      margin-bottom: $base_margin;
-    }
+    // weather items
+    #weather-grid {
+      .weather-forecast {
+        &-time {
+          font-weight: 500;
+          font-size: 10pt;
+          padding-top: variable.$padding;
+          padding-bottom: variable.$padding;
+        }
 
-    .weather-forecast-temp {
-      font-feature-settings: "tnum";
-      font-weight: 700;
+        &-icon {
+          margin-bottom: $base_margin;
+        }
+
+        &-temp {
+          font-feature-settings: "tnum";
+          font-weight: 700;
+        }
+      }
     }
   }
 }

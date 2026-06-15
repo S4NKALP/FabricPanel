@@ -3,32 +3,6 @@
 @use "common";
 
 /* system tray widget*/
-#system-tray-menu {
-  padding: 0.5em 0.25em;
-  color: theme.$text-main;
-  border-radius: variable.$radius;
-  min-width: 200px;
-  min-height: 50px;
-  background-color: theme.$background-alt;
-
-  grid {
-    & > button {
-      margin: 0 0.1em;
-      padding: 0 0.15em;
-      border-radius: variable.$radius-large;
-
-      &:hover {
-        background-color: theme.$surface-disabled;
-      }
-
-      &:active {
-        background-color: theme.$text-main;
-      }
-    }
-  }
-}
-
-/* system tray widget*/
 #system_tray {
   @include common.widget_border(
     variable.$bar-widgets-system_tray-border-radius,
@@ -47,6 +21,32 @@
 
     &.active {
       background-color: theme.$background-alt;
+    }
+  }
+
+  /* system tray widget*/
+  &-menu {
+    padding: 0.5em 0.25em;
+    color: theme.$text-main;
+    border-radius: variable.$radius;
+    min-width: 200px;
+    min-height: 50px;
+    background-color: theme.$background-alt;
+
+    grid {
+      & > button {
+        margin: 0 0.1em;
+        padding: 0 0.15em;
+        border-radius: variable.$radius-large;
+
+        &:hover {
+          background-color: theme.$surface-disabled;
+        }
+
+        &:active {
+          background-color: theme.$text-main;
+        }
+      }
     }
   }
 }

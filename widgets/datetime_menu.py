@@ -165,7 +165,7 @@ class DateMenuNotification(Box):
 
 
 class DateNotificationMenu(Box):
-    """A menu to display the weather information."""
+    """A menu to display the date and time information."""
 
     NUM_STACKED_NOTIFICATIONS = 3
 
@@ -175,7 +175,7 @@ class DateNotificationMenu(Box):
         **kwargs,
     ):
         super().__init__(
-            name="date-menu",
+            name="datetime-menu",
             orientation="h",
             **kwargs,
         )
@@ -662,7 +662,7 @@ class DateTimeWidget(ButtonWidget, PopoverMixin):
     """A widget to power off the system."""
 
     def __init__(self, **kwargs):
-        super().__init__(name="date_time", **kwargs)
+        super().__init__(name="datetime", **kwargs)
 
         notification_config = self.config.get("notification", {})
 
@@ -703,18 +703,14 @@ class DateTimeWidget(ButtonWidget, PopoverMixin):
 
         if self.config.get("hover_reveal", True):
             self.revealer = Revealer(
-                child=DateTime(
-                    self.config.get("date_format", "%m-%d %H:%M"), name="date-time"
-                ),
+                child=DateTime(self.config.get("date_format", "%m-%d %H:%M")),
                 transition_duration=self.config.get("reveal_duration", 500),
                 transition_type="slide_right",
             )
             self.container_box.add(self.revealer)
         else:
             self.container_box.add(
-                DateTime(
-                    self.config.get("date_format", "%m-%d %H:%M"), name="date-time"
-                )
+                DateTime(self.config.get("date_format", "%m-%d %H:%M"))
             )
 
         self.setup_popover(lambda: DateNotificationMenu(config=self.config))

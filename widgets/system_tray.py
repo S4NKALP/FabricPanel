@@ -119,7 +119,7 @@ class SystemTrayMenu(Box, BaseSystemTray):
 
     def __init__(self, config: dict, parent_widget=None, **kwargs):
         super().__init__(
-            name="system-tray-menu",
+            name="system_tray-menu",
             orientation="vertical",
             style_classes=["panel-menu"],
             **kwargs,
@@ -171,7 +171,7 @@ class SystemTrayWidget(ButtonWidget, PopoverMixin, BaseSystemTray):
         super().__init__(name="system_tray", **kwargs)
 
         # Create main tray box and toggle icon
-        self.tray_box = Box(name="system-tray-box", orientation="horizontal", spacing=2)
+        self.tray_box = Box(name="system_tray-box", orientation="horizontal", spacing=2)
         self._items: dict[str, HoverButton] = {}
 
         self.icon_size = self.config.get("icon_size", 16)
