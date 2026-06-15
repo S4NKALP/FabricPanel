@@ -40,7 +40,7 @@ class ClipHistoryMenu(Box):
         **kwargs,
     ):
         super().__init__(
-            name="clip-menu",
+            name="clipboard-menu",
             orientation="v",
             spacing=10,
             h_expand=True,

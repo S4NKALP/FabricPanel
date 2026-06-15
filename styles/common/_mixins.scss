@@ -51,7 +51,7 @@
   background-color: theme.$background;
   color: theme.$text-main;
   border-radius: 12px;
-  padding: 10px;
+  min-height: 8px;
 
   selection {
     color: theme.$background;

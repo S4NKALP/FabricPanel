@@ -18,7 +18,7 @@ class EmojiPickerMenu(Box):
 
     def __init__(self, parent, **kwargs):
         super().__init__(
-            name="emoji-menu",
+            name="emoji_picker-menu",
             **kwargs,
         )
 

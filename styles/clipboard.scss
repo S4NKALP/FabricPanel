@@ -3,64 +3,13 @@
 @use "common";
 @use "variable";
 
-#clip-menu {
-  #search-entry {
-    @extend %entry_default;
-  }
+#clipboard {
+  @include common.widget_border(variable.$bar-widgets-clipboard-border-radius,
+    variable.$bar-widgets-clipboard-border-enabled,
+    variable.$bar-widgets-clipboard-border-width );
 
-  #close-button,
-  #clear-button {
-    padding: 10px;
-
-    &:hover,
-    &:focus {
-      border-radius: variable.$radius-large;
-      background-color: theme.$surface-highlight;
-    }
-
-    &:active {
-      background-color: theme.$accent-red;
-
-      #close-label,
-      #clear-label {
-        color: theme.$background;
-      }
-    }
-  }
-
-  #close-label,
-  #clear-label {
-    color: theme.$accent-red;
-    font-size: 12px;
-  }
-
-  #scrolled-window {
-    border-radius: 16px;
-    min-height: 300px;
-  }
-
-  #slot-button {
-    border-radius: 10px;
-    padding: 8px;
-    transition: padding 0.1s ease;
-    animation: loadSlot 0.5s ease;
-
-    &:active {
-      background-color: theme.$background;
-    }
-
-    &:hover,
-    &:focus,
-    &:selected,
-    &.selected {
-      background-color: theme.$accent-teal;
-      color: black;
-    }
-  }
-
-  #clip-label {
-    font-weight: bold;
-  }
+  @include common.nerd-icon(variable.$bar-widgets-clipboard-icon_size,
+    variable.$bar-widgets-clipboard-spacing );
 
   @keyframes loadSlot {
     0% {
@@ -71,17 +20,66 @@
       opacity: 1;
     }
   }
-}
 
-#clipboard {
-  @include common.widget_border(
-    variable.$bar-widgets-clipboard-border-radius,
-    variable.$bar-widgets-clipboard-border-enabled,
-    variable.$bar-widgets-clipboard-border-width
-  );
+  &-menu {
+    #search-entry {
+      @extend %entry_default;
+    }
 
-  @include common.nerd-icon(
-    variable.$bar-widgets-clipboard-icon_size,
-    variable.$bar-widgets-clipboard-spacing
-  );
+    #close-button,
+    #clear-button {
+      padding: 10px;
+
+      &:hover,
+      &:focus {
+        border-radius: variable.$radius-large;
+        background-color: theme.$surface-highlight;
+      }
+
+      &:active {
+        background-color: theme.$accent-red;
+
+        #close-label,
+        #clear-label {
+          color: theme.$background;
+        }
+      }
+    }
+
+    #close-label,
+    #clear-label {
+      color: theme.$accent-red;
+      font-size: 12px;
+    }
+
+    #scrolled-window {
+      border-radius: 16px;
+      min-height: 300px;
+    }
+
+    #slot-button {
+      border-radius: 10px;
+      padding: 8px;
+      transition: padding 0.1s ease;
+      animation: loadSlot 0.5s ease;
+
+      &:active {
+        background-color: theme.$background;
+      }
+
+      &:hover,
+      &:focus,
+      &:selected,
+      &.selected {
+        background-color: theme.$accent-teal;
+        color: black;
+      }
+    }
+
+    #clip-label {
+      font-weight: bold;
+    }
+
+
+  }
 }
