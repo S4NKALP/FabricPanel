@@ -3,7 +3,7 @@ from fabric.hyprland.widgets import HyprlandWorkspaces
 
 from shared.widget_container import BoxWidget
 from utils.functions import get_distro_icon, unique_list
-from utils.widget_utils import nerd_font_icon
+from utils.widget_utils import nerd_font_icon, setup_cursor_hover
 
 
 class WorkSpacesWidget(BoxWidget):
@@ -55,5 +55,7 @@ class WorkSpacesWidget(BoxWidget):
             label=self._create_workspace_label(ws_id) if self.style != "pill" else None,
             visible=ws_id not in self.ignored_ws,
         )
+
+        setup_cursor_hover(button)
 
         return button
