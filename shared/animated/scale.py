@@ -3,8 +3,7 @@ from functools import partial
 from fabric.utils import GLib
 from fabric.widgets.scale import Scale
 
-from shared.animator import cubic_bezier
-
+from ..animator import cubic_bezier
 from ..widget_container import BaseWidget
 
 

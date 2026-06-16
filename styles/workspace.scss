@@ -15,7 +15,7 @@ $workspace-transition:
     variable.$bar-widgets-workspaces-spacing
   );
 
-  #workspaces_widget {
+  &_widget {
     font-weight: 700;
 
     @include common.widget_border(

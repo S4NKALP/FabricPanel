@@ -61,7 +61,6 @@ class CollapsibleGroupWidget(ButtonWidget):
 
         from .popover import Popover
 
-        # Fix: Read spacing and style_classes directly from config
         self.widgets_box = Box(
             orientation="h",
             spacing=self.config.get("spacing", 4),

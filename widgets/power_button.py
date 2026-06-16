@@ -1,4 +1,4 @@
-from fabric.utils import Gdk, exec_shell_command_async
+from fabric.utils import Gdk, GLib, Gtk, exec_shell_command_async
 from fabric.widgets.box import Box
 from fabric.widgets.grid import Grid
 from fabric.widgets.label import Label
@@ -11,7 +11,6 @@ from shared.dialog import Dialog
 from shared.popup import PopupWindow
 from shared.widget_container import ButtonWidget
 from utils.constants import ASSETS_DIR
-from utils.functions import set_panel_visibility
 from utils.widget_utils import nerd_font_icon
 
 
@@ -116,7 +115,43 @@ class PowerMenuPopup(PopupWindow):
 
     def _set_popup_visible(self, visible: bool):
         super()._set_popup_visible(visible)
-        set_panel_visibility(visible)
+        self.set_panel_visibility(visible)
+
+    def set_panel_visibility(self, popup_visible: bool):
+        from fabric import Application
+
+        app = Application.get_default()
+        if app is None:
+            return
+
+        if popup_visible:
+            cached_visibility: list[tuple[Gtk.Widget, bool]] = []
+            for window in app.get_windows():
+                if window is self or window.get_name() != "panel":
+                    continue
+                visible = window.get_visible()
+                cached_visibility.append((window, visible))
+
+            self._bar_visibility = cached_visibility
+
+            def hide_bars():
+                for window, was_visible in self._bar_visibility:
+                    if was_visible:
+                        window.set_visible(False)
+                return False
+
+            GLib.idle_add(hide_bars)
+            return
+
+        cached_visibility = list(self._bar_visibility)
+        self._bar_visibility = []
+
+        def restore_bars():
+            for window, was_visible in cached_visibility:
+                window.set_visible(was_visible)
+            return False
+
+        GLib.idle_add(restore_bars)
 
     def on_key_release(self, _, event_key: Gdk.EventKey):
         if event_key.keyval == Gdk.KEY_Escape:

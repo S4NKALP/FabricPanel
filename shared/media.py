@@ -22,9 +22,6 @@ from fabric.widgets.scale import Scale
 from fabric.widgets.stack import Stack
 
 from services.mpris import MprisPlayer, MprisPlayerManager
-from shared.animator import cubic_bezier
-from shared.buttons import HoverButton
-from shared.circle_image import CircularImage
 from utils.constants import APP_DATA_DIRECTORY, ASSETS_DIR, NEWLINE_RE
 from utils.functions import (
     ensure_directory,
@@ -39,6 +36,10 @@ from utils.widget_utils import (
     nerd_font_icon,
     setup_cursor_hover,
 )
+
+from .animator import cubic_bezier
+from .buttons import HoverButton
+from .circle_image import CircularImage
 
 
 class PlayerBoxStack(Box):
@@ -447,7 +448,7 @@ class PlayerBox(Box):
         self.angle_direction = 1
         self.seek_bar.set_value(0)
 
-        from shared.animator import Animator
+        from .animator import Animator
 
         if self.art_animator is None:
             self.art_animator = Animator(

@@ -43,7 +43,7 @@ class PopoverMixin:
     def show_popover(self, *_) -> None:
         """Show the popover, creating it lazily on first use."""
         if self._popup is None and self._popover_content_factory is not None:
-            from shared.popover import Popover
+            from .popover import Popover
 
             self._popup = Popover(
                 content=self._popover_content_factory(),
