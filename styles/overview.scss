@@ -3,7 +3,6 @@
 @use "common";
 @use "variable";
 
-
 #overview_button {
   @include common.widget_border(
     variable.$bar-widgets-overview-border-radius,
@@ -17,51 +16,51 @@
   );
 
   #overview-menu {
-      padding: 5px;
+    padding: 5px;
 
-      #overview-window {
-        background-color: color.mix(black, transparent, 90%);
-        border-radius: 50px;
-        padding: common.toEm(10);
+    #overview-window {
+      background-color: color.mix(black, transparent, 90%);
+      border-radius: 50px;
+      padding: common.toEm(10);
+    }
+
+    #overview-client-box,
+    #overview-workspace-bg,
+    #overview-frame {
+      border-radius: variable.$radius;
+      transition: all 0.1s ease;
+    }
+
+    #overview-client-box {
+      background-color: color.mix(theme.$surface-disabled, transparent, 40%);
+
+      #overview-icon {
+        margin: common.toEm(5);
+        background-color: color.mix(black, transparent, 40%);
+        border-color: black;
+        border-radius: 15px;
+        border-width: 2px;
+        border-style: solid;
+        padding: common.toEm(5);
       }
 
-      #overview-client-box,
-      #overview-workspace-bg,
-      #overview-frame {
-        border-radius: variable.$radius;
-        transition: all 0.1s ease;
+      &:hover {
+        background-color: color.mix(theme.$surface-disabled, transparent, 70%);
       }
 
-      #overview-client-box {
-        background-color: color.mix(theme.$surface-disabled, transparent, 40%);
-
-        #overview-icon {
-          margin: common.toEm(5);
-          background-color: color.mix(black, transparent, 40%);
-          border-color: black;
-          border-radius: 15px;
-          border-width: 2px;
-          border-style: solid;
-          padding: common.toEm(5);
-        }
-
-        &:hover {
-          background-color: color.mix(theme.$surface-disabled, transparent, 70%);
-        }
-
-        &:active {
-          background-color: color.mix(theme.$surface-disabled, transparent, 100%);
-        }
-      }
-
-      #overview-workspace-bg {
-        background-color: color.mix(theme.$surface-disabled, transparent, 40%);
-
-        #overview-add-label {
-          font-size: 2rem;
-          font-weight: 400;
-          color: color.mix(theme.$text-main, black, 30%);
-        }
+      &:active {
+        background-color: color.mix(theme.$surface-disabled, transparent, 100%);
       }
     }
+
+    #overview-workspace-bg {
+      background-color: color.mix(theme.$surface-disabled, transparent, 40%);
+
+      #overview-add-label {
+        font-size: 2rem;
+        font-weight: 400;
+        color: color.mix(theme.$text-main, black, 30%);
+      }
+    }
+  }
 }

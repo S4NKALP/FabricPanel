@@ -50,7 +50,9 @@ $workspace-transition:
         transition: $workspace-transition;
         padding-left: variable.$bar-widgets-workspaces-pill-active_width;
         padding-right: variable.$bar-widgets-workspaces-pill-active_width;
-        border: if(variable.$bar-widgets-workspaces-pill-border-enabled, variable.$border, none);
+        border: if(
+          sass(variable.$bar-widgets-workspaces-pill-border-enabled): variable.$border; else: none
+        );
         border-radius: variable.$bar-widgets-workspaces-pill-border-radius;
         border-width: variable.$bar-widgets-workspaces-pill-border-width;
         background-color: theme.$accent-purple;
