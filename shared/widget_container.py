@@ -122,7 +122,7 @@ class ButtonWidget(Button, BaseWidget):
         widget_name = kwargs.get("name", "button")
         self._init_widget_settings(widget_name)
 
-        self.container_box = Box(style_classes=["box"])
+        self.container_box = Box(style_classes=["widget-container"])
         self.add(self.container_box)
         self._connect_hover_reveal()
 
@@ -143,6 +143,7 @@ class WidgetGroup(BoxWidget):
         css_classes = self._merge_style_classes(["panel-module-group"], style_classes)
 
         super().__init__(
+            name="widget-group",
             spacing=spacing,
             style_classes=css_classes,
             orientation="h",  # Default to horizontal for panel layout
