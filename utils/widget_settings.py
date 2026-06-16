@@ -510,7 +510,15 @@ Overview_Button = TypedDict(
 )
 
 
-ClipBoard = TypedDict("ClipBoard", {"icon": str, **BaseConfig.__annotations__})
+ClipBoard = TypedDict(
+    "ClipBoard",
+    {
+        **BaseConfig.__annotations__,
+        "icon": str,
+        "show_images": bool,
+        "item_tooltip": bool,
+    },
+)
 
 Kanban = TypedDict("kanban", {"icon": str, **BaseConfig.__annotations__})
 

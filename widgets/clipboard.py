@@ -37,6 +37,7 @@ class ClipHistoryMenu(Box):
     def __init__(
         self,
         parent=None,
+        config=None,
         **kwargs,
     ):
         super().__init__(
@@ -60,6 +61,8 @@ class ClipHistoryMenu(Box):
         self.filtered_items = []
         self._loading = False
         self._pending_updates = False
+        self.show_images = config.get("show_images", False)
+        self.item_tooltip = config.get("item_tooltip", False)
 
         # Pagination state, reset for new scan
         self.items_loaded = 0
@@ -312,7 +315,7 @@ class ClipHistoryMenu(Box):
             unquote(urlparse(content).path)
         )
 
-        if is_image:
+        if is_image and self.show_images:
             # For images, create item with image preview
             button = Button(
                 name="slot-button",
@@ -332,7 +335,7 @@ class ClipHistoryMenu(Box):
                         ),
                     ],
                 ),
-                tooltip_text="Image in clipboard",
+                tooltip_text="Image in clipboard" if self.item_tooltip else None,
                 on_clicked=lambda *_, id=item_id: self.paste_item(id),
             )
             # Load image preview in background
@@ -362,12 +365,14 @@ class ClipHistoryMenu(Box):
                         ),
                     ],
                 ),
-                tooltip_text="File in clipboard",
+                tooltip_text="File in clipboard" if self.item_tooltip else None,
                 on_clicked=lambda *_, id=item_id: self.paste_item(id),
             )
         else:
             # For text, create regular item
-            button = self.create_text_item_button(item_id, display_text)
+            button = self.create_text_item_button(
+                item_id, display_text, item_tooltip=self.item_tooltip
+            )
 
         # Add key press event handler for Enter key
 
@@ -444,7 +449,7 @@ class ClipHistoryMenu(Box):
             if isinstance(image_widget, Image):
                 image_widget.set_from_pixbuf(pixbuf)
 
-    def create_text_item_button(self, item_id, display_text):
+    def create_text_item_button(self, item_id, display_text, item_tooltip=False):
         """Create a button for a text clipboard item"""
         return Button(
             name="slot-button",
@@ -456,7 +461,7 @@ class ClipHistoryMenu(Box):
                 h_align="start",
                 h_expand=True,
             ),
-            tooltip_text=display_text,
+            tooltip_text=display_text if item_tooltip else None,
             on_clicked=lambda *_: self.paste_item(item_id),
         )
 
@@ -739,4 +744,4 @@ class ClipBoardWidget(ButtonWidget, PopoverMixin):
         if self.config.get("tooltip", False) and self.tooltips_enabled:
             self.set_tooltip_text("Clipboard History")
 
-        self.setup_popover(lambda: ClipHistoryMenu(parent=self))
+        self.setup_popover(lambda: ClipHistoryMenu(parent=self, config=self.config))

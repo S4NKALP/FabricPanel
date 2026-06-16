@@ -52,6 +52,8 @@ DEFAULT_CONFIG = {
             "icon": "",
             "label": False,
             "tooltip": True,
+            "item_tooltip": False,
+            "show_images": True,
         },
         "breathe": {
             "icon": "",

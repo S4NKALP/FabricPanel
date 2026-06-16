@@ -1579,6 +1579,14 @@
 						"tooltip": {
 							"type": "boolean",
 							"default": true
+						},
+						"show_images": {
+							"type": "boolean",
+							"default": true
+						},
+						"item_tooltip": {
+							"type": "boolean",
+							"default": false
 						}
 					},
 					"required": [
