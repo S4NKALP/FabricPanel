@@ -2,8 +2,8 @@ from fabric.core.widgets import WorkspaceButton
 from fabric.hyprland.widgets import HyprlandWorkspaces
 
 from shared.widget_container import BoxWidget
-from utils.functions import get_distro_icon, unique_list
-from utils.widget_utils import nerd_font_icon, setup_cursor_hover
+from utils.functions import unique_list
+from utils.widget_utils import setup_cursor_hover
 
 
 class WorkSpacesWidget(BoxWidget):
@@ -19,10 +19,6 @@ class WorkSpacesWidget(BoxWidget):
         self.hide_unoccupied = self.config.get("hide_unoccupied", False)
         self.style = self.config.get("style", "numbered")
 
-        self.icon = nerd_font_icon(
-            icon=get_distro_icon(),
-            props={"style_classes": ["panel-font-icon"]},
-        )
 
         # Create a HyperlandWorkspace widget to manage workspace buttons
         self.workspace = HyprlandWorkspaces(
@@ -44,7 +40,7 @@ class WorkSpacesWidget(BoxWidget):
         )
 
         # Add the HyperlandWorkspace widget as a child
-        self.children = (self.icon, self.workspace)
+        self.children = (self.workspace)
 
     def _create_workspace_label(self, ws_id: int) -> str:
         return self.icon_map.get(str(ws_id), self.label_format.format(id=ws_id))
