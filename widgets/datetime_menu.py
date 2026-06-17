@@ -718,8 +718,10 @@ class DateTimeWidget(ButtonWidget, PopoverMixin):
     def on_notification_count(self, _, value, *args):
         if value > 0:
             self.count_label.set_text(str(value))
+            self.notification_indicator.remove_style_class("no-notifications")
             self.count_label.set_visible(True)
         else:
+            self.notification_indicator.add_style_class("no-notifications")
             self.count_label.set_visible(False)
 
     def on_dnd_switch(self, _, value, *args):
