@@ -19,7 +19,6 @@ class WorkSpacesWidget(BoxWidget):
         self.hide_unoccupied = self.config.get("hide_unoccupied", False)
         self.style = self.config.get("style", "numbered")
 
-
         # Create a HyperlandWorkspace widget to manage workspace buttons
         self.workspace = HyprlandWorkspaces(
             name="workspaces_widget",
@@ -40,7 +39,7 @@ class WorkSpacesWidget(BoxWidget):
         )
 
         # Add the HyperlandWorkspace widget as a child
-        self.children = (self.workspace)
+        self.children = self.workspace
 
     def _create_workspace_label(self, ws_id: int) -> str:
         return self.icon_map.get(str(ws_id), self.label_format.format(id=ws_id))

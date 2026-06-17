@@ -507,3 +507,16 @@ scrolledwindow {
     @include mixins.widget_style(variable.$bar-style-widget);
   }
 }
+
+#collapsible_group {
+  @include mixins.widget_style(variable.$bar-style-widget);
+  &.active {
+    background: theme.$accent-blue;
+    color: theme.$text-main;
+  }
+
+  &:hover {
+    @extend %widget_hover;
+    color: theme.$background-dark;
+  }
+}

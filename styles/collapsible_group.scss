@@ -39,15 +39,3 @@
     font-size: 20px;
   }
 }
-
-#collapsible_group {
-  &.active {
-    background: theme.$accent-blue;
-    color: theme.$text-main;
-  }
-
-  &:hover {
-    @extend %widget_hover;
-    color: theme.$background-dark;
-  }
-}
