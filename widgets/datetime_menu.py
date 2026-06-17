@@ -688,6 +688,7 @@ class DateTimeWidget(ButtonWidget, PopoverMixin):
                 notification_config.get("hide_count_on_zero", False)
                 and notification_service.count == 0
             ):
+                self.notification_indicator.add_style_class("no-notifications")
                 self.count_label.set_visible(False)
 
             bulk_connect(
@@ -720,7 +721,7 @@ class DateTimeWidget(ButtonWidget, PopoverMixin):
             self.count_label.set_text(str(value))
             self.notification_indicator.remove_style_class("no-notifications")
             self.count_label.set_visible(True)
-        else:
+        elif self.config.get("notification", {}).get("hide_count_on_zero", False):
             self.notification_indicator.add_style_class("no-notifications")
             self.count_label.set_visible(False)
 
