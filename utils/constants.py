@@ -224,6 +224,7 @@ DEFAULT_CONFIG = {
         "mpris": {
             "truncation_size": 20,
             "tooltip": True,
+            "label_format": "{title} - {artist}",
         },
         "ocr": {
             "icon": "󰐳",

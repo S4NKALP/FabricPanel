@@ -348,7 +348,14 @@ Cpu = TypedDict(
 )
 
 # Mpris configuration
-Mpris = TypedDict("Mpris", {**BaseConfig.__annotations__, "truncation_size": int})
+Mpris = TypedDict(
+    "Mpris",
+    {
+        **BaseConfig.__annotations__,
+        "truncation_size": int,
+        "label_format": str,
+    },
+)
 
 # Memory configuration
 Memory = TypedDict(

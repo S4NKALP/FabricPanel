@@ -62,6 +62,8 @@ class MprisWidget(ButtonWidget, PopoverMixin):
             "show_time_tooltip": True,
         }
 
+        self.label_format = self.config.get("label_format", "{title} - {artist}")
+
         # Services
         self.mpris_manager = MprisPlayerManager()
         bulk_connect(
@@ -214,7 +216,15 @@ class MprisWidget(ButtonWidget, PopoverMixin):
         title = self.player.title or ""
         bar_label = NEWLINE_RE.sub(" ", title).strip() or "Nothing playing"
 
-        self.label.set_text(bar_label)
+
+        label_text = self.label_format.format(
+            title=title,
+            artist=self.player.artist or "",
+            album=self.player.album or "",
+            name=self.player.player_name or "",
+        )
+
+        self.label.set_text(label_text)
 
         art_url = getattr(self.player, "arturl", None)
         if not art_url:

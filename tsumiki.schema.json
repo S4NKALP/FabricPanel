@@ -1764,11 +1764,17 @@
 							"type": "boolean",
 							"default": false,
 							"description": "Whether to display the tooltip for the MPRIS."
+						},
+						"label_format": {
+							"type": "string",
+							"default": "{title} - {artist}",
+							"description": "Specifies the format string for the MPRIS label. Available variables: {title}, {artist}, {album}, {name}, {identity}."
 						}
 					},
 					"required": [
 						"truncation_size",
-						"tooltip"
+						"tooltip",
+						"label_format"
 					]
 				},
 				"world_clock": {
