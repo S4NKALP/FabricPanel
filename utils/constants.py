@@ -39,6 +39,7 @@ LOG_DIR = f"{USER_STATE_DIR}/{APPLICATION_NAME}/logs"
 LOG_FILE = f"{LOG_DIR}/{APPLICATION_NAME}.log"
 LOG_FORMAT = "{time:YYYY-MM-DD HH:mm:ss} [<level>{level}</level>] {message}"
 
+
 # Default configuration values
 DEFAULT_CONFIG = {
     "$schema": f"./{APPLICATION_NAME}.schema.json",

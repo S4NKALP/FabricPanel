@@ -891,19 +891,6 @@ def validate_widget_reference(
         _validate_regular_widget(widget_spec, parsed_data, default_config, section)
 
 
-# Maps (widget_name, config_key) -> frozenset of valid named format keys.
-# A value of None means only positional {} is valid (no named keys).
-_FORMAT_KEY_VALIDATORS: dict[tuple[str, str], frozenset[str] | None] = {
-    ("window_count", "label_format"): frozenset({"count"}),
-    ("weather", "label_format"): frozenset(
-        {"location", "temperature", "condition", "humidity", "wind_speed"}
-    ),
-    ("workspaces", "label_format"): frozenset({"id"}),
-    ("network_usage", "label_format"): frozenset({"upload", "download"}),
-    ("weather", "provider"): frozenset({"open-mateo", "wttr"}),
-}
-
-
 def _get_named_format_keys(fmt: str) -> set[str]:
     """Return the set of named keys used in a Python format string."""
     return {
@@ -913,30 +900,54 @@ def _get_named_format_keys(fmt: str) -> set[str]:
     }
 
 
+_VALID_LABEL_FORMATS = {
+    "battery": {
+        "label_format": set(["icon", "percent", "time_remaining"]),
+    },
+    "network_usage": {
+        "label_format": set(["download", "upload"]),
+    },
+    "weather": {
+        "label_format": set(["temperature", "condition"]),
+    },
+    "workspaces": {
+        "label_format": set(["id"]),
+    },
+    "window_count": {
+        "label_format": set(["count"]),
+    },
+    "mpris": {
+        "label_format": set(["title", "artist", "album", "name"]),
+    },
+}
+
+
+# validate format strings in widget settings
 def validate_format_strings(parsed_data: dict) -> None:
     """Warn when format strings in widget settings reference unknown keys."""
     widgets = parsed_data.get("widgets", {})
-    for (widget_name, config_key), valid_keys in _FORMAT_KEY_VALIDATORS.items():
+    for widget_name in _VALID_LABEL_FORMATS:
         widget_cfg = widgets.get(widget_name, {})
         if not isinstance(widget_cfg, dict):
             continue
-        fmt = widget_cfg.get(config_key)
-        if not isinstance(fmt, str):
-            continue
-        try:
-            used = _get_named_format_keys(fmt)
-        except (ValueError, KeyError):
-            logger.warning(
-                f"[Config] widgets.{widget_name}.{config_key}: invalid format string"
-            )
-            continue
-        unknown = used - valid_keys
-        if unknown:
-            logger.warning(
-                f"[Config] widgets.{widget_name}.{config_key}: "
-                f"unknown key(s) {sorted(unknown)!r}. "
-                f"Valid keys: {sorted(valid_keys)!r}"
-            )
+        for config_key, valid_keys in _VALID_LABEL_FORMATS[widget_name].items():
+            fmt = widget_cfg.get(config_key)
+            if not isinstance(fmt, str):
+                continue
+            try:
+                used = _get_named_format_keys(fmt)
+            except (ValueError, KeyError):
+                logger.warning(
+                    f"[Config] widgets.{widget_name}.{config_key}: invalid format"
+                )
+                continue
+            unknown = used - valid_keys
+            if unknown:
+                logger.warning(
+                    f"[Config] widgets.{widget_name}.{config_key}: "
+                    f"unknown key(s) {sorted(unknown)!r}. "
+                    f"Valid keys: {sorted(valid_keys)!r}"
+                )
 
 
 def validate_widgets(parsed_data, default_config):

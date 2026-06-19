@@ -1768,7 +1768,7 @@
 						"label_format": {
 							"type": "string",
 							"default": "{title} - {artist}",
-							"description": "Specifies the format string for the MPRIS label. Available variables: {title}, {artist}, {album}, {name}, {identity}."
+							"description": "Specifies the format string for the MPRIS label. Available variables: {title}, {artist}, {album}, {name}."
 						}
 					},
 					"required": [

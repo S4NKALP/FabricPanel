@@ -216,7 +216,6 @@ class MprisWidget(ButtonWidget, PopoverMixin):
         title = self.player.title or ""
         bar_label = NEWLINE_RE.sub(" ", title).strip() or "Nothing playing"
 
-
         label_text = self.label_format.format(
             title=title,
             artist=self.player.artist or "",
