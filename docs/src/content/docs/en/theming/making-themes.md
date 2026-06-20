@@ -52,7 +52,7 @@ $accent-lavender: #b4befe;
 /* Extras */
 $bar-background: #242323;
 $shadow-color: rgba(0, 0, 0, 0.6);
-$ws-active: $text-muted;
+
 
 ```
 
@@ -114,8 +114,7 @@ $accent-lavender: #ade8f4;
 
 $bar-background: #0d1b2a;
 $shadow-color: rgba(0, 0, 0, 0.5);
-$ws-active: $text-muted;
-$ws-hover: $accent-teal;
+
 ```
 
 ## Learn from Existing Themes
