@@ -1,13 +1,11 @@
 from functools import partial
 
 import gi
-from fabric.utils import bulk_connect
-from gi.repository import Gdk, GLib, Gtk, PangoCairo
+from fabric.utils import Gdk, GLib, Gtk, bulk_connect
+from gi.repository import PangoCairo
 
 from .animator import Animator, cubic_bezier
 
-gi.require_version("Gtk", "3.0")
-gi.require_version("Pango", "1.0")
 gi.require_version("PangoCairo", "1.0")
 
 
