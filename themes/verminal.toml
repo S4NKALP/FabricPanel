@@ -1,0 +1,34 @@
+[colors.background]
+main = "#2d2d2d"  # Main background (dark gray)
+alt = "#3c3c3c"  # Secondary background (slightly lighter gray)
+dark = "#121212"  # Darkest background (almost black)
+
+[colors.text]
+main = "#b3b3b3"  # Primary text color (light gray)
+secondary = "#8f8f8f"  # Secondary text color (medium gray)
+muted = "#6f6f6f"  # Tertiary text, muted (dusty gray)
+disabled = "#707070"  # Disabled text (grayish)
+muted_light = "#8f8f8f"  # Light-muted text for hints (light gray)
+muted_dark = "#3c3c3c"  # Dark-muted text (charcoal)
+
+[colors.surface]
+disabled = "#5a5a5a"  # Disabled items (dark gray)
+neutral = "#474747"  # Neutral surface for cards, panels (dark charcoal)
+highlight = "#99ff99"  # Selection and highlights (light green)
+
+[colors.accent]
+light = "#66cc66"  # Light accent (neon green)
+pink = "#ff66cc"  # Pink accent (vibrant pink)
+purple = "#9966cc"  # Purple accent (soft purple)
+red = "#ff6666"  # Red for errors and warnings (vibrant red)
+orange = "#ff9933"  # Orange for alerts (neon orange)
+yellow = "#ffff66"  # Yellow for highlights (bright yellow)
+green = "#66cc66"  # Green for success (bright green)
+teal = "#33cccc"  # Teal for information (turquoise)
+blue = "#3399cc"  # Blue for links and actions (bright blue)
+light_blue = "#66ccff"  # Sky blue accent (light cyan)
+lavender = "#9966cc"  # Lavender for subtle highlights (soft purple)
+
+[ui]
+bar_background = "rgba(45, 45, 45, 0.8)"  # Panel background (semi-transparent dark gray)
+shadow_color = "rgba(0, 0, 0, 0.6)"  # Shadow color (dark, soft shadows)

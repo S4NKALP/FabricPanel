@@ -1,0 +1,34 @@
+[colors.background]
+main = "#1e1e2e"  # Main background
+alt = "#181825"  # Secondary background
+dark = "#11111b"  # Darkest background
+
+[colors.text]
+main = "#cdd6f4"  # Primary text color
+secondary = "#bac2de"  # Secondary text color
+muted = "#a6adc8"  # Tertiary text, muted
+disabled = "#6c7086"  # Text for disabled elements
+muted_light = "#7f849c"  # Light-muted text for hints
+muted_dark = "#9399b2"  # Dark-muted text
+
+[colors.surface]
+disabled = "#313244"  # Background for disabled items
+neutral = "#45475a"  # Neutral surface for cards, panels
+highlight = "#585b70"  # Selection and highlights
+
+[colors.accent]
+light = "#f5e0dc"  # Lightest accent (Rosewater)
+pink = "#f5c2e7"  # Pink accent
+purple = "#cba6f7"  # Mauve accent
+red = "#f38ba8"  # Red for errors and warnings
+orange = "#fab387"  # Orange for warnings and alerts
+yellow = "#f9e2af"  # Yellow for highlights
+green = "#a6e3a1"  # Green for success
+teal = "#94e2d5"  # Teal for information
+blue = "#89b4fa"  # Blue for links and actions
+light_blue = "#89dceb"  # Sky blue accent
+lavender = "#b4befe"  # Lavender for subtle highlights
+
+[ui]
+bar_background = "rgb(36, 35, 35)"
+shadow_color = "rgba(0, 0, 0, 0.6)"
