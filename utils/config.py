@@ -1,5 +1,3 @@
-import json
-
 from fabric.utils import get_relative_path, logger, os
 
 from .constants import APPLICATION_NAME, DEFAULT_CONFIG
@@ -8,9 +6,9 @@ from .functions import (
     exclude_keys,
     flatten_dict,
     read_toml_file,
-    run_in_thread,
     validate_config_enums,
     validate_widgets,
+    write_css_settings,
 )
 from .widget_settings import BarConfig
 
@@ -50,7 +48,10 @@ class TsumikiConfig:
         self.config = self._load_config()
         self.theme_config = read_toml_file(file_path=self.theme_config_file) or {}
 
-        self._write_css_settings()
+        write_css_settings(
+            flatten_dict(exclude_keys(self.theme_config, ["name", "matugen"])),
+            f"{self.root_dir}/styles/_settings.scss",
+        )
         self._initialized = True
 
     def _load_config(self) -> BarConfig:
@@ -86,23 +87,6 @@ class TsumikiConfig:
                 parsed_data[key] = deep_merge(parsed_data.get(key, {}), default_value)
 
         return parsed_data
-
-    @run_in_thread
-    def _write_css_settings(self):
-        """Generate SCSS settings file from theme config."""
-        logger.info("[CONFIG] Applying css settings...")
-
-        css_styles = flatten_dict(exclude_keys(self.theme_config, ["name", "matugen"]))
-
-        # Use list comprehension and join for faster string building
-        lines = [
-            f"${setting}: {json.dumps(value) if isinstance(value, bool) else value};"
-            for setting, value in css_styles.items()
-        ]
-
-        with open(f"{self.root_dir}/styles/_settings.scss", "w") as f:
-            f.write("\n".join(lines))
-            f.write("\n")
 
 
 configuration = TsumikiConfig()

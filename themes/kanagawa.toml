@@ -1,9 +1,9 @@
-[colors.background]
+[background]
 main = "#1e2a33"  # Main background (deep navy blue, representing the ocean)
 alt = "#2c3e50"  # Secondary background (dark slate gray)
 dark = "#17202a"  # Darkest background (almost black, deep ocean hue)
 
-[colors.text]
+[text]
 main = "#f0f4f8"  # Primary text color (soft off-white, for contrast)
 secondary = "#b0bec5"  # Secondary text color (light gray with a hint of blue)
 muted = "#7f8c8d"  # Tertiary text, muted (subtle gray, neutral tone)
@@ -11,12 +11,12 @@ disabled = "#90a4ae"  # Disabled text (muted slate gray)
 muted_light = "#b0bec5"  # Light-muted text for hints (soft blue-gray)
 muted_dark = "#263238"  # Dark-muted text (very dark blue-gray)
 
-[colors.surface]
+[surface]
 disabled = "#607d8b"  # Disabled items (faded blue-gray)
 neutral = "#78909c"  # Neutral surface for cards, panels (steel blue)
 highlight = "#00bcd4"  # Selection and highlights (vibrant cyan, reminiscent of water)
 
-[colors.accent]
+[accent]
 light = "#81c784"  # Light accent (soft pastel green, hinting at nature)
 pink = "#f06292"  # Pink accent (subtle rose pink, symbolizing cherry blossoms)
 purple = "#9c27b0"  # Purple accent (lavender, rich purple tones)
@@ -29,6 +29,6 @@ blue = "#0277bd"  # Blue for links and actions (deep sea blue)
 light_blue = "#81d4fa"  # Sky blue accent (light and airy blue)
 lavender = "#7986cb"  # Lavender for subtle highlights (soft lavender hue)
 
-[ui]
+[general]
 bar_background = "rgba(27, 38, 51, 0.9)"  # Panel background (semi-transparent deep ocean blue)
 shadow_color = "rgba(0, 0, 0, 0.7)"  # Shadow color (soft shadows with a hint of depth)

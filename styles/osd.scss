@@ -6,7 +6,7 @@
 /* OSD widget*/
 
 #osd-container {
-  background-color: theme.$shadow-color;
+  background-color: theme.$general-shadow-color;
   padding: common.toEm(12) common.toEm(20);
   margin-bottom: 100px;
   opacity: variable.$modules-osd-opacity * 0.01;

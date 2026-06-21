@@ -1,9 +1,9 @@
-[colors.background]
+[background]
 main = "#0a1f1d"  # Main background (dark, deep greenish-black)
 alt = "#122d29"  # Secondary background (dark green with a touch of teal)
 dark = "#031b18"  # Darkest background (almost black with deep greenish-blue)
 
-[colors.text]
+[text]
 main = "#a8d8d1"  # Primary text color (light mint green)
 secondary = "#7fb5b5"  # Secondary text color (muted teal)
 muted = "#4c7570"  # Tertiary text, muted (soft green-gray)
@@ -11,12 +11,12 @@ disabled = "#4c7570"  # Disabled text (muted green-gray)
 muted_light = "#597d75"  # Light-muted text for hints (grayish green)
 muted_dark = "#3c5c53"  # Dark-muted text (dark greenish-gray)
 
-[colors.surface]
+[surface]
 disabled = "#2e4e46"  # Disabled items (dark, muted green-gray)
 neutral = "#2b4742"  # Neutral surface for cards, panels (deep teal-green)
 highlight = "#00b594"  # Selection and highlights (neon teal)
 
-[colors.accent]
+[accent]
 light = "#80b99e"  # Light accent (soft moss green)
 pink = "#ff6b81"  # Pink accent (vibrant coral-pink)
 purple = "#9f68b6"  # Purple accent (soft violet)
@@ -29,6 +29,6 @@ blue = "#5d94b8"  # Blue for links and actions (soft neon blue)
 light_blue = "#72b9db"  # Sky blue accent (cool light blue)
 lavender = "#a0a4d7"  # Lavender for subtle highlights (light lavender)
 
-[ui]
+[general]
 bar_background = "rgba(10, 31, 29, 0.8)"  # Panel background (semi-transparent dark green)
 shadow_color = "rgba(0, 0, 0, 0.6)"  # Shadow color (soft, dark shadows)

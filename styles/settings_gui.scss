@@ -3,7 +3,7 @@
 @use "variable";
 
 #settings-window {
-  background-color: theme.$background;
+  background-color: theme.$background-main;
   border-radius: variable.$radius;
 }
 
@@ -117,7 +117,7 @@ grid {
   border-radius: variable.$radius;
   font-weight: 500;
   background-color: theme.$accent-blue;
-  color: theme.$background;
+  color: theme.$background-main;
 
   &:hover {
     background-color: theme.$accent-teal;

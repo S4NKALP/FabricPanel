@@ -1,9 +1,9 @@
-[colors.background]
+[background]
 main = "#011627"  # Main background (deep navy)
 alt = "#1b2b34"  # Secondary background (dark grayish-blue)
 dark = "#000a1f"  # Darkest background (almost black with blue tint)
 
-[colors.text]
+[text]
 main = "#d6deeb"  # Primary text color (light bluish-gray)
 secondary = "#a0b0b9"  # Secondary text color (soft gray)
 muted = "#5f6a79"  # Tertiary text, muted (muted gray-blue)
@@ -11,12 +11,12 @@ disabled = "#4f5b66"  # Disabled text (dim gray-blue)
 muted_light = "#7d8c97"  # Light-muted text for hints (grayish-blue)
 muted_dark = "#263238"  # Dark-muted text (dark grayish-blue)
 
-[colors.surface]
+[surface]
 disabled = "#586e75"  # Disabled items (muted teal)
 neutral = "#344952"  # Neutral surface for cards, panels (dark slate)
 highlight = "#82aaff"  # Selection and highlights (light blue)
 
-[colors.accent]
+[accent]
 light = "#61dafb"  # Light accent (cyan)
 pink = "#ff79c6"  # Pink accent (vibrant pink)
 purple = "#bb80b3"  # Purple accent (soft purple)
@@ -29,6 +29,6 @@ blue = "#82aaff"  # Blue for links and actions (light blue)
 light_blue = "#6a90ff"  # Sky blue accent (light blue)
 lavender = "#bb80b3"  # Lavender for subtle highlights (soft lavender)
 
-[ui]
+[general]
 bar_background = "rgba(1, 22, 39, 0.85)"  # Panel background (semi-transparent navy)
 shadow_color = "rgba(0, 0, 0, 0.5)"  # Shadow color (dark shadows)

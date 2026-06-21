@@ -1,9 +1,9 @@
-[colors.background]
+[background]
 main = "#2f2a4a"  # Main background (dark purple with a hint of brown)
 alt = "#3a314e"  # Secondary background (dark rose with a touch of purple)
 dark = "#26233a"  # Darkest background (deep rose-purple)
 
-[colors.text]
+[text]
 main = "#ebbcba"  # Primary text color (soft off-white with a hint of lavender)
 secondary = "#c4b8e3"  # Secondary text color (light lavender-gray)
 muted = "#a89bb9"  # Tertiary text, muted (soft grayish lavender)
@@ -11,12 +11,12 @@ disabled = "#b6a6d3"  # Disabled text (muted lavender-gray)
 muted_light = "#a99bb3"  # Light-muted text for hints (light grayish lavender)
 muted_dark = "#6e5a80"  # Dark-muted text (soft purple-gray)
 
-[colors.surface]
+[surface]
 disabled = "#5c4a7f"  # Disabled items (muted purple)
 neutral = "#3e3658"  # Neutral surface for cards, panels (dark bluish purple)
 highlight = "#eb6f92"  # Selection and highlights (vibrant rose-pink)
 
-[colors.accent]
+[accent]
 light = "#f6a4c5"  # Light accent (soft pastel pink)
 pink = "#eb6f92"  # Pink accent (vibrant rose-pink)
 purple = "#a7b8d4"  # Purple accent (muted lavender)
@@ -29,6 +29,6 @@ blue = "#84a0c6"  # Blue for links and actions (soft pastel blue)
 light_blue = "#92a9c6"  # Sky blue accent (light blue)
 lavender = "#c4b8e3"  # Lavender for subtle highlights (muted lavender)
 
-[ui]
+[general]
 bar_background = "rgba(0, 0, 0, 0.2)"  # Panel background (semi-transparent dark purple)
 shadow_color = "rgba(0, 0, 0, 0.6)"  # Shadow color (soft, dark shadows)

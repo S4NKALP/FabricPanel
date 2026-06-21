@@ -23,7 +23,7 @@
 
   &.active {
     border-radius: 5px;
-    background-color: color.mix(theme.$background, white, 15%);
+    background-color: color.mix(theme.$background-main, white, 15%);
   }
 
   &.empty {

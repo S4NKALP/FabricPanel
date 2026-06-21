@@ -34,7 +34,7 @@
   &-inner {
     $bar-opacity-ratio: variable.$bar-opacity * 0.01;
     $transparency-value: (1 - $bar-opacity-ratio) * 100%;
-    background-color: color.mix(theme.$bar-background, transparent, $transparency-value);
+    background-color: color.mix(theme.$general-bar-background, transparent, $transparency-value);
     padding: variable.$bar-padding_y variable.$bar-padding_x;
 
     @include mixins.module-shadow(
@@ -181,7 +181,7 @@ menuitem {
   separator {
     min-height: 1px;
     margin: functions.toEm(4) 0;
-    background-color: theme.$background;
+    background-color: theme.$background-main;
   }
 }
 
@@ -275,7 +275,7 @@ switch {
   transition: all 75ms cubic-bezier(0, 0, 0.2, 1);
   margin: functions.toEm(4) 0;
   border-radius: variable.$radius-large;
-  background-color: color.mix(theme.$background, white, 90%);
+  background-color: color.mix(theme.$background-main, white, 90%);
   background-clip: padding-box;
   font-size: 0;
   color: transparent;
@@ -367,7 +367,7 @@ scrolledwindow {
     border-radius: 8px;
     min-width: 6px;
     min-height: 30px;
-    background-color: theme.$background;
+    background-color: theme.$background-main;
   }
 }
 
@@ -419,18 +419,18 @@ scrolledwindow {
     @extend %caption_heading;
     padding: 0.5rem 2.5rem;
     border-radius: variable.$radius;
-    background-color: theme.$background;
+    background-color: theme.$background-main;
     color: theme.$text-main;
     margin: 0 1rem;
 
     &:nth-child(1):hover {
       background-color: #4caf50;
-      color: theme.$background;
+      color: theme.$background-main;
     }
 
     &:nth-child(2):hover {
       background-color: #e53935;
-      color: theme.$background;
+      color: theme.$background-main;
     }
   }
 }

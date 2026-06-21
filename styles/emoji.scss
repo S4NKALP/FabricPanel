@@ -29,17 +29,17 @@
   @keyframes highlightEmojiSlot {
     0% {
       padding: 16px;
-      text-shadow: 0 4px 4px theme.$shadow-color;
+      text-shadow: 0 4px 4px theme.$general-shadow-color;
     }
 
     50% {
       padding: 8px 16px 24px 16px;
-      text-shadow: 0 12px 4px theme.$shadow-color;
+      text-shadow: 0 12px 4px theme.$general-shadow-color;
     }
 
     100% {
       padding: 16px;
-      text-shadow: 0 4px 4px theme.$shadow-color;
+      text-shadow: 0 4px 4px theme.$general-shadow-color;
     }
   }
 
@@ -62,7 +62,7 @@
         background-color: theme.$accent-red;
 
         #close-label {
-          color: theme.$background;
+          color: theme.$background-main;
         }
       }
     }
@@ -91,7 +91,7 @@
       &:selected,
       &.selected {
         background-color: theme.$surface-highlight;
-        text-shadow: 0 0 4px theme.$shadow-color;
+        text-shadow: 0 0 4px theme.$general-shadow-color;
         animation: highlightEmojiSlot 0.25s cubic-bezier(0, 0, 0.5, 1);
 
         #emoji-name-label {
@@ -103,7 +103,7 @@
         background-color: theme.$text-main;
 
         #emoji-name-label {
-          color: theme.$background;
+          color: theme.$background-main;
         }
       }
     }

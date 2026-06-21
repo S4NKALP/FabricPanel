@@ -53,7 +53,7 @@ def main():
 
         matugen_service.generate_sync()
     else:
-        helpers.copy_theme(theme_config.get("name", "catppuccin-mocha"))
+        helpers.copy_themev2(theme_config.get("name", "catppuccin-mocha"))
 
     helpers.set_process_name(APPLICATION_NAME)
 

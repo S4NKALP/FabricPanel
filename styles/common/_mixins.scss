@@ -11,8 +11,11 @@
 @mixin module-shadow($enabled, $offset, $blur, $spread, $opacity) {
   @if $enabled {
     $shadow:
-      0 0 0 variable.$bar-border-width theme.$shadow-color,
-      $offset $blur $spread color.adjust(theme.$shadow-color, $alpha: calc($opacity * 0.01 - 1));
+      0 0 0 variable.$bar-border-width theme.$general-shadow-color,
+      $offset
+        $blur
+        $spread
+        color.adjust(theme.$general-shadow-color, $alpha: calc($opacity * 0.01 - 1));
     box-shadow: $shadow;
   } @else {
     box-shadow: none;
@@ -48,13 +51,13 @@
 
 %entry_default {
   font-weight: bold;
-  background-color: theme.$background;
+  background-color: theme.$background-main;
   color: theme.$text-main;
   border-radius: 12px;
   min-height: 8px;
 
   selection {
-    color: theme.$background;
+    color: theme.$background-main;
     background-color: theme.$text-main;
   }
 }
@@ -179,7 +182,7 @@
     slider {
       background-color: theme.$text-main;
       border-color: variable.$border-color;
-      box-shadow: 0 0 3px 0 theme.$shadow-color;
+      box-shadow: 0 0 3px 0 theme.$general-shadow-color;
       border: variable.$border-width solid transparent;
       transition: 200ms;
       border-radius: variable.$radius-large;

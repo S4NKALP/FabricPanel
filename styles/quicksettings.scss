@@ -71,7 +71,7 @@ $toggler-radius: variable.$radius * 1.4;
 
         button {
           margin: 0 5px;
-          background-color: color.mix(theme.$background, white, 90%);
+          background-color: color.mix(theme.$background-main, white, 90%);
           border-radius: variable.$radius-large;
           padding: common.toEm(4) common.toEm(8);
           font-weight: 600;
@@ -135,7 +135,7 @@ $toggler-radius: variable.$radius * 1.4;
       button {
         padding: common.toEm(5);
         border-radius: variable.$radius;
-        background-color: theme.$background;
+        background-color: theme.$background-main;
         color: theme.$text-main;
         min-height: 32px;
 
@@ -145,10 +145,10 @@ $toggler-radius: variable.$radius * 1.4;
 
         &:hover {
           background-color: theme.$accent-blue;
-          color: theme.$background;
+          color: theme.$background-main;
 
           .shortcut-icon {
-            color: theme.$background;
+            color: theme.$background-main;
           }
         }
       }
@@ -169,7 +169,7 @@ $toggler-radius: variable.$radius * 1.4;
     %slider-box-base {
       padding: common.toEm(15);
       border-radius: variable.$radius;
-      background-color: theme.$background;
+      background-color: theme.$background-main;
 
       #setting-slider {
         &-scale {
@@ -268,7 +268,7 @@ $toggler-radius: variable.$radius * 1.4;
           background-color: theme.$text-main;
 
           & > * {
-            color: theme.$background;
+            color: theme.$background-main;
           }
         }
       }
@@ -310,7 +310,7 @@ $toggler-radius: variable.$radius * 1.4;
 
     #quicksettings-togglebutton {
       border-radius: $toggler-radius;
-      background-color: theme.$background;
+      background-color: theme.$background-main;
       margin: common.toEm(2) 0;
 
       &:hover {
@@ -333,7 +333,7 @@ $toggler-radius: variable.$radius * 1.4;
       }
 
       &.quicksettings-toggler {
-        background-color: theme.$background;
+        background-color: theme.$background-main;
         border-radius: $toggler-radius;
         @extend %caption_heading;
         padding: common.toEm(3) 0;

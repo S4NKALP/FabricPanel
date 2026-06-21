@@ -46,7 +46,7 @@
 
         #close-label,
         #clear-label {
-          color: theme.$background;
+          color: theme.$background-main;
         }
       }
     }
@@ -69,7 +69,7 @@
       animation: loadSlot 0.5s ease;
 
       &:active {
-        background-color: theme.$background;
+        background-color: theme.$background-main;
       }
 
       &:hover,

@@ -50,8 +50,8 @@ $accent-light-blue: #89dceb;
 $accent-lavender: #b4befe;
 
 /* Extras */
-$bar-background: #242323;
-$shadow-color: rgba(0, 0, 0, 0.6);
+$general-bar-background: #242323;
+$general-shadow-color: rgba(0, 0, 0, 0.6);
 
 
 ```
@@ -112,8 +112,8 @@ $accent-blue: #00b4d8;
 $accent-light-blue: #90e0ef;
 $accent-lavender: #ade8f4;
 
-$bar-background: #0d1b2a;
-$shadow-color: rgba(0, 0, 0, 0.5);
+$general-bar-background: #0d1b2a;
+$general-shadow-color: rgba(0, 0, 0, 0.5);
 
 ```
 

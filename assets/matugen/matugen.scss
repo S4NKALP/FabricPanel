@@ -12,10 +12,10 @@ ${{name}}: {{value.default.rgba}};
 
 /* Background Colors            */
 /* ---------------------------- */
-$background: $surface; // Primary background
+$background-main: $surface; // Primary background
 $background-alt: $surface_container; // Secondary/elevated background
 $background-dark: $surface_container_lowest; // Darkest background (popups, dropdowns)
-$bar-background: $surface_container_low; // Status bar background
+
 
 /* ---------------------------- */
 /* Text Colors                  */
@@ -54,5 +54,5 @@ $accent-red: $error; // Error/danger states
 /* ---------------------------- */
 /* UI Element Colors            */
 /* ---------------------------- */
-$shadow-color: $shadow; // Drop shadows
-$ws-hover: $primary; // Workspace hover state
+$general-shadow-color: $shadow; // Drop shadows
+$general-bar-background: $surface_container_low; // Status bar background

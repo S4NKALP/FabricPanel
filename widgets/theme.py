@@ -5,14 +5,15 @@ from fabric.utils import get_relative_path, os
 from shared.widget_container import ButtonWidget
 from utils.config import theme_config
 from utils.functions import (
-    copy_theme,
-    recompile_and_apply_css,
+    copy_themev2,
     send_notification,
     update_theme_config,
 )
 from utils.widget_utils import nerd_font_icon
 
 
+# TODO: fix this to work with the new theme system, and add a way to preview themes
+# needs more tests
 class ThemeSwitcherWidget(ButtonWidget):
     """A widget to switch themes."""
 
@@ -23,10 +24,10 @@ class ThemeSwitcherWidget(ButtonWidget):
         self._switching_lock = threading.Lock()
         self._is_switching = False
 
-        theme_files = os.listdir(get_relative_path("../styles/themes"))
+        theme_files = os.listdir(get_relative_path("../themes"))
 
-        # Remove the '.scss' part from each string in the list
-        self.themes_list = [style.replace(".scss", "") for style in theme_files]
+        # Remove the '.toml' part from each string in the list
+        self.themes_list = [style.replace(".toml", "") for style in theme_files]
 
         # Get current theme from theme config, with fallback
         self.current_theme = theme_config.get("name", "catpuccin-mocha")
@@ -62,7 +63,6 @@ class ThemeSwitcherWidget(ButtonWidget):
 
         if self.config.get("notify", True):
             send_notification("Tsumiki", f"Theme switched to {self.current_theme}")
-        copy_theme(self.current_theme)
+        copy_themev2(self.current_theme)
         update_theme_config(self.current_theme)
-        recompile_and_apply_css()
         self.set_tooltip_text(self.current_theme)

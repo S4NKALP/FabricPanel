@@ -7,7 +7,7 @@
 #taskbar {
   font-style: normal;
   color: theme.$text-main;
-  background-color: theme.$bar-background;
+  background-color: theme.$general-bar-background;
 
   @include common.widget-border(
     variable.$bar-widgets-taskbar-border-radius,

@@ -441,19 +441,20 @@ def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
 
 # Function to copy the selected theme to the main styles directory
 @run_in_thread
-def copy_theme(theme: str):
-    theme_dir = get_relative_path("../styles")
-    destination_file = f"{theme_dir}/theme.scss"
-    source_file = f"{theme_dir}/themes/{theme}.scss"
+def copy_themev2(theme: str):
+    source_theme_dir = get_relative_path("../themes")
+    destination_file = f"{get_relative_path('../styles')}/theme.scss"
+    source_file = f"{source_theme_dir}/{theme}.toml"
 
     if not os.path.exists(source_file):
         logger.warning(
-            f"{Colors.WARNING}Warning: The theme file '{theme}.scss' was not found. Using default theme."  # noqa: E501
+            f"{Colors.WARNING}Warning: The theme file '{theme}.toml' was not found. Using default theme."  # noqa: E501
         )
-        source_file = f"{theme_dir}/themes/catpuccin-mocha.scss"
+        source_file = f"{source_theme_dir}/catpuccin-mocha.toml"
 
     try:
-        shutil.copyfile(source_file, destination_file)
+        contents = read_toml_file(source_file)
+        write_css_settings(flatten_dict(contents), destination_file)
 
     except FileNotFoundError:
         logger.exception(
@@ -557,6 +558,24 @@ def flatten_dict(d: dict, parent_key: str = "", sep: str = "-") -> dict:
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+@run_in_thread
+def write_css_settings(contents, file):
+    """Generate SCSS settings file from theme config."""
+    logger.info("[CONFIG] Applying css settings...")
+
+    css_styles = contents
+
+    # Use list comprehension and join for faster string building
+    lines = [
+        f"${setting}: {json.dumps(value) if isinstance(value, bool) else value};"
+        for setting, value in css_styles.items()
+    ]
+
+    with open(file, "w") as f:
+        f.write("\n".join(lines))
+        f.write("\n")
 
 
 # Function to exclude keys from a dictionary

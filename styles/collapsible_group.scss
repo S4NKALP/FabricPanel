@@ -6,7 +6,7 @@
   background-color: theme.$background-alt;
   border-radius: variable.$radius-large;
   padding: 0.1em 0.9em;
-  box-shadow: 0 0 0 variable.$border-width theme.$shadow-color;
+  box-shadow: 0 0 0 variable.$border-width theme.$general-shadow-color;
 
   .panel-button {
     margin: 4px;

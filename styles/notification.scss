@@ -125,7 +125,7 @@ $hover-transition: background 0.15s ease-in-out;
       }
 
       &:hover {
-        background-color: theme.$background;
+        background-color: theme.$background-main;
       }
     }
   }
@@ -149,7 +149,7 @@ $hover-transition: background 0.15s ease-in-out;
 #datemenu-notification-box {
   @extend %notification_widget;
 
-  background-color: theme.$background;
+  background-color: theme.$background-main;
   border: 1px solid color.mix(theme.$surface-disabled, transparent, 40%);
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.3),
