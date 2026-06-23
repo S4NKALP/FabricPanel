@@ -4,9 +4,9 @@ from fabric.utils import Gdk, GLib
 from fabric.widgets.box import Box
 from fabric.widgets.eventbox import EventBox
 from fabric.widgets.revealer import Revealer
-from fabric.widgets.wayland import WaylandWindow as Window
 from fabric.widgets.widget import Widget
 
+from shared.widget_container import BaseWindow
 from utils.monitors import HyprlandWithMonitors
 from utils.types import Anchor, Keyboard_Mode, Layer
 
@@ -130,7 +130,7 @@ def make_layout(anchor: str, name: str, popup: "PopupRevealer", **kwargs) -> Box
     return Box(children=h_children)
 
 
-class PopupWindow(Window):
+class PopupWindow(BaseWindow):
     """A popup window to display a message."""
 
     def __init__(

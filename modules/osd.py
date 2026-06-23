@@ -5,9 +5,8 @@ from fabric.widgets.box import Box
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from fabric.widgets.revealer import Revealer
-from fabric.widgets.wayland import WaylandWindow as Window
 
-from shared.widget_container import BaseWidget
+from shared.widget_container import BaseWidget, BaseWindow
 from utils.icons import symbolic_icons
 from utils.types import Keyboard_Mode
 from utils.widget_settings import BarConfig
@@ -69,7 +68,7 @@ class GenericOSDContainer(Box, BaseWidget):
             self.level.set_label(f"{round_value}%")
 
 
-class OSDContainer(Window):
+class OSDContainer(BaseWindow):
     """A widget to display the OSD for audio and brightness."""
 
     def __init__(

@@ -19,7 +19,6 @@ from fabric.widgets.grid import Grid
 from fabric.widgets.label import Label
 from fabric.widgets.overlay import Overlay
 from fabric.widgets.revealer import Revealer
-from fabric.widgets.wayland import WaylandWindow as Window
 from fabric.widgets.widget import Widget
 
 import utils.constants as constants
@@ -27,6 +26,7 @@ import utils.functions as helpers
 from services import notification_service
 from shared.buttons import HoverButton
 from shared.circle_image import CircularImage
+from shared.widget_container import BaseWindow
 from utils.colors import Colors
 from utils.icons import get_text_icon
 from utils.widget_settings import BarConfig
@@ -36,7 +36,7 @@ from utils.widget_utils import create_progress, get_icon, nerd_font_icon
 _SWIPE_DISMISS_THRESHOLD = 0.35
 
 
-class NotificationPopup(Window):
+class NotificationPopup(BaseWindow):
     """A widget to grab and display notifications."""
 
     def __init__(self, widget_config: BarConfig, **kwargs):

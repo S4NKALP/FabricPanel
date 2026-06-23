@@ -2,8 +2,8 @@ from typing import Iterable
 
 from fabric.widgets.box import Box
 from fabric.widgets.shapes import Corner
-from fabric.widgets.wayland import WaylandWindow as Window
 
+from shared.widget_container import BaseWindow
 from utils.widget_settings import BarConfig
 
 
@@ -21,7 +21,7 @@ class SideCorner(Box):
         )
 
 
-class ScreenCorners(Window):
+class ScreenCorners(BaseWindow):
     """A window that displays all four corners."""
 
     def __init__(self, config: BarConfig, **kwargs):

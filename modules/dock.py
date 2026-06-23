@@ -8,8 +8,8 @@ from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.eventbox import EventBox
 from fabric.widgets.image import Image
 from fabric.widgets.revealer import Revealer
-from fabric.widgets.wayland import WaylandWindow as Window
 
+from shared.widget_container import BaseWindow
 from utils.app import AppUtils
 from utils.config import widget_config
 from utils.constants import PINNED_APPS_FILE
@@ -930,7 +930,7 @@ class AppBar(Box):
             return -1
 
 
-class Dock(Window):
+class Dock(BaseWindow):
     """A dock for applications."""
 
     def __init__(self, config: BarConfig):

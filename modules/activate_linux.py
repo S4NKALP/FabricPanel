@@ -1,11 +1,11 @@
 from fabric.widgets.box import Box
 from fabric.widgets.label import Label
-from fabric.widgets.wayland import WaylandWindow as Window
 
+from shared.widget_container import BaseWindow
 from utils.widget_settings import BarConfig
 
 
-class ActivateLinux(Window):
+class ActivateLinux(BaseWindow):
     """
     A simple activate linux widget.
     """

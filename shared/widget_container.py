@@ -66,11 +66,18 @@ class BaseWidget(Widget):
         self.set_style_classes("") if not action else self.set_style_classes("active")
 
 
-class BaseWindow(Window, BaseWidget):
+class BaseWindow(Window):
     """A base window class that can be extended for custom windows."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+    def toggle(self):
+        """Toggle the visibility of the bar."""
+        if self.is_visible():
+            self.hide()
+        else:
+            self.show()
 
 
 class BoxWidget(Box, BaseWidget):

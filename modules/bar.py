@@ -6,8 +6,8 @@ from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.eventbox import EventBox
 from fabric.widgets.revealer import Revealer
-from fabric.widgets.wayland import WaylandWindow as Window
 
+from shared.widget_container import BaseWindow
 from utils.constants import ASSETS_DIR
 from utils.widget_settings import BarConfig
 
@@ -123,7 +123,7 @@ LAZY_WIDGETS_LIST = {
 }
 
 
-class Bar(Window):
+class Bar(BaseWindow):
     """A widget to display the status bar panel."""
 
     def __init__(self, config: BarConfig, **kwargs):
