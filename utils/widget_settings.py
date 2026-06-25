@@ -354,6 +354,8 @@ Mpris = TypedDict(
         **BaseConfig.__annotations__,
         "truncation_size": int,
         "label_format": str,
+        "hide_when_no_player": bool,
+        "ignore": list[str],
     },
 )
 

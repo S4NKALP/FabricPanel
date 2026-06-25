@@ -226,6 +226,8 @@ DEFAULT_CONFIG = {
             "truncation_size": 20,
             "tooltip": True,
             "label_format": "{title} - {artist}",
+            "hide_when_no_player": True,
+            "ignore": [],
         },
         "ocr": {
             "icon": "󰐳",

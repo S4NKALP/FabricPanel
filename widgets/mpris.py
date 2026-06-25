@@ -25,7 +25,6 @@ class MprisWidget(ButtonWidget, PopoverMixin):
 
         self.label = ScrollingLabel(
             name="mpris-label",
-            text="Nothing playing",
             style_classes=["panel-text"],
             scroll_on_hover=True,
             max_width=char_limit_to_px(self, self.config.get("truncation_size", 30)),
@@ -54,7 +53,7 @@ class MprisWidget(ButtonWidget, PopoverMixin):
 
         config = {
             "enabled": True,
-            "ignore": ["vlc"],
+            "ignore": [""],
             "truncation_size": 30,
             "show_album": True,
             "show_artist": True,
@@ -213,6 +212,7 @@ class MprisWidget(ButtonWidget, PopoverMixin):
             self._set_default_values()
             return
 
+        self.show()
         title = self.player.title or ""
         bar_label = NEWLINE_RE.sub(" ", title).strip() or "Nothing playing"
 
@@ -241,6 +241,8 @@ class MprisWidget(ButtonWidget, PopoverMixin):
         self.meta_box.v_align = "center"
         self.progress.set_visible(False)
         self.progress.set_style("")
+        if self.config.get("hide_when_no_player", True):
+            self.hide()
 
     def destroy(self):
         self._stop_progress_timer()

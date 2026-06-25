@@ -1769,12 +1769,28 @@
 							"type": "string",
 							"default": "{title} - {artist}",
 							"description": "Specifies the format string for the MPRIS label. Available variables: {title}, {artist}, {album}, {name}."
+						},
+						"hide_when_no_player": {
+							"type": "boolean",
+							"default": true,
+							"description": "Whether to hide the MPRIS widget when playback is stopped."
+						},
+						"ignore": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"default": [],
+							"description": "List of MPRIS players to ignore."
 						}
 					},
 					"required": [
 						"truncation_size",
 						"tooltip",
-						"label_format"
+						"label_format",
+						"hide_when_no_player",
+						"ignore"
+
 					]
 				},
 				"world_clock": {
