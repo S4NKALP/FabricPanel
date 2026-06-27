@@ -443,7 +443,7 @@ def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
 @run_in_thread
 def copy_themev2(theme: str):
     source_theme_dir = get_relative_path("../themes")
-    destination_file = f"{get_relative_path('../styles')}/theme.scss"
+    destination_file = f"{get_relative_path('../styles')}/_theme.scss"
     source_file = f"{source_theme_dir}/{theme}.toml"
 
     if not os.path.exists(source_file):

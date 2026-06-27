@@ -1,6 +1,6 @@
 @use "sass:color";
-@use "../theme";
-@use "../variable";
+@use "../_theme";
+@use "../_variable";
 
 /// Generates a module shadow with configurable parameters
 /// @param {Boolean} $enabled - Whether shadow is enabled

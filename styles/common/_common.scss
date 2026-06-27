@@ -2,8 +2,8 @@
 
 @use "functions";
 @use "mixins";
-@use "../theme.scss";
-@use "../variable.scss";
+@use "../_theme.scss";
+@use "../_variable.scss";
 
 .flat {
   border-radius: 4px;
