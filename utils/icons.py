@@ -19,6 +19,7 @@ text_nerd_icons = {
         "tick": "",
         "fold": "",
         "lock": "",
+        "refresh": "",
     },
     "ethernet": "󰈀",
     "wifi": {
@@ -49,6 +50,7 @@ text_nerd_icons = {
     "trash": {
         "full": "",
         "empty": "",
+        "full_filled": "",
     },
     "notifications": {
         "noisy": "󰂜",

@@ -25,7 +25,7 @@ from fabric.widgets.scrolledwindow import ScrolledWindow
 from shared.list import ListBox
 from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
-from utils.widget_utils import nerd_font_icon
+from utils.widget_utils import get_text_icon, nerd_font_icon
 
 # Pre-compiled regex for HTML image tag detection
 _HTML_IMG_RE = re.compile(r"^\s*<img\s+")
@@ -118,8 +118,14 @@ class ClipHistoryMenu(Box):
             children=[
                 self.search_entry,
                 Button(
+                    name="sync-button",
+                    label=get_text_icon("ui.refresh"),
+                    tooltip_text="Sync Clipboard",
+                    on_clicked=self._load_clipboard_items_async,
+                ),
+                Button(
                     name="clear-button",
-                    child=Label(name="clear-label", label=""),
+                    label=get_text_icon("trash.empty"),
                     tooltip_text="Clear History",
                     on_clicked=self.clear_history,
                 ),
@@ -128,7 +134,7 @@ class ClipHistoryMenu(Box):
 
         self.children = [self.header_box, self.scrolled_window]
         self.connect("destroy", self._on_destroy)
-        self.open()  # Load items when the widget is created
+        self.open()  # Load items when the menu is created
 
     def on_icon_press(self, entry, icon_pos, event):
         if icon_pos == Gtk.EntryIconPosition.SECONDARY:
@@ -200,7 +206,7 @@ class ClipHistoryMenu(Box):
         # Start loading asynchronously
         self._load_clipboard_items_async()
 
-    def _load_clipboard_items_async(self):
+    def _load_clipboard_items_async(self, *_):
         """Load clipboard items asynchronously without blocking UI"""
         try:
             # Use Gio.Subprocess for true async execution

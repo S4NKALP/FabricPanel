@@ -32,12 +32,14 @@
     }
 
     #close-button,
-    #clear-button {
-      padding: 10px;
+    #clear-button,
+    #sync-button {
+      margin: 2px 0;
+      padding: 2px 8px;
+      border-radius: variable.$radius-large;
 
       &:hover,
       &:focus {
-        border-radius: variable.$radius-large;
         background-color: theme.$surface-highlight;
       }
 
