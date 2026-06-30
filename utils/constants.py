@@ -139,7 +139,7 @@ DEFAULT_CONFIG = {
         },
         "settings": {"icon": "󰒓", "tooltip": True, "label": False},
         "date_time": {
-            "date_format": "%b %d %H:%M",
+            "date_format": "%b %d",
             "calendar": True,
             "clock_format": "12h",
             "hover_reveal": False,

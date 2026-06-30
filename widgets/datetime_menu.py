@@ -702,17 +702,22 @@ class DateTimeWidget(ButtonWidget, PopoverMixin):
             self.container_box.add(self.notification_indicator)
             self.container_box.add(self.count_label)
 
+            clock_format = "%I:%M"
+
+            if self.config.get("clock_format", "24h") == "24h":
+                clock_format = "%H:%M"
+
+            date_format = f"{self.config.get('date_format', '%b %d')} {clock_format}"
+
         if self.config.get("hover_reveal", True):
             self.revealer = Revealer(
-                child=DateTime(self.config.get("date_format", "%m-%d %H:%M")),
+                child=DateTime(date_format),
                 transition_duration=self.config.get("reveal_duration", 500),
                 transition_type="slide_right",
             )
             self.container_box.add(self.revealer)
         else:
-            self.container_box.add(
-                DateTime(self.config.get("date_format", "%m-%d %H:%M"))
-            )
+            self.container_box.add(DateTime(date_format))
 
         self.setup_popover(lambda: DateNotificationMenu(config=self.config))
 
