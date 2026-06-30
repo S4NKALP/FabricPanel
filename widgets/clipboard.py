@@ -66,13 +66,21 @@ class ClipHistoryMenu(Box):
 
         # Pagination state, reset for new scan
         self.items_loaded = 0
-        self.batch_size = 7
+        self.batch_size = 10
         self.loading = False
-        self.max_items = 0  # ← LIMIT HERE
+        self.max_items = 0  # Will be set when items are loaded
 
         self._search_timer_id = 0  # Timer ID for search text change
 
-        self.viewport = ListBox(name="viewport", spacing=4, orientation="v")
+        self.viewport = ListBox(
+            name="viewport",
+            spacing=4,
+            orientation="v",
+            v_align="fill",
+            h_align="fill",
+            h_expand=True,
+            v_expand=True,
+        )
 
         self.search_entry = Entry(
             name="search-entry",
@@ -104,8 +112,8 @@ class ClipHistoryMenu(Box):
         self.scrolled_window = ScrolledWindow(
             name="scrolled-window",
             spacing=10,
-            min_content_size=(300, 105),
-            max_content_size=(300, 105),
+            min_content_size=(300, 200),
+            max_content_size=(300, 200),
             child=self.viewport,
         )
         vadj = self.scrolled_window.get_vadjustment()
@@ -144,7 +152,7 @@ class ClipHistoryMenu(Box):
         return Gio.SubprocessLauncher.new(flags)
 
     def _load_next_batch(self):
-        if self.loading or self.items_loaded >= self.max_items:
+        if self.loading or self.max_items == 0 or self.items_loaded >= self.max_items:
             return
         self.loading = True
 
@@ -161,14 +169,15 @@ class ClipHistoryMenu(Box):
 
     def on_scroll(self, adjustment: Gtk.Adjustment):
         """Load next page when user scrolls near the bottom."""
-        if self.loading or self.items_loaded >= self.max_items:
+        if self.loading or self.max_items == 0 or self.items_loaded >= self.max_items:
             return
 
         value = adjustment.get_value()
         upper = adjustment.get_upper()
         page_size = adjustment.get_page_size()
 
-        if value + page_size >= upper - 50:
+        # Trigger load when within 100px of bottom
+        if value + page_size >= upper - 100:
             self._load_next_batch()
 
     def on_search_text_changed(self, entry, pspec):
@@ -297,8 +306,8 @@ class ClipHistoryMenu(Box):
             return
 
         # Pagination: start with first page, then append on scroll.
-        self.items_loaded = 0
         self.max_items = len(filtered_items)
+        self.items_loaded = 0
         self.loading = False
         self._load_next_batch()
 
