@@ -1587,6 +1587,10 @@
 						"item_tooltip": {
 							"type": "boolean",
 							"default": false
+						},
+						"enable_pinning": {
+							"type": "boolean",
+							"default": true
 						}
 					},
 					"required": [

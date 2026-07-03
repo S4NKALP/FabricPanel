@@ -63,6 +63,15 @@ class ClipHistoryMenu(Box):
         self._pending_updates = False
         self.show_images = config.get("show_images", False)
         self.item_tooltip = config.get("item_tooltip", False)
+        self.enable_pinning = config.get("enable_pinning", True)
+
+        if self._parent is not None and not hasattr(
+            self._parent, "pinned_clipboard_ids"
+        ):
+            self._parent.pinned_clipboard_ids = set()
+        self.pinned_item_ids = (
+            self._parent.pinned_clipboard_ids if self._parent is not None else set()
+        )
 
         # Pagination state, reset for new scan
         self.items_loaded = 0
@@ -252,6 +261,10 @@ class ClipHistoryMenu(Box):
     def _update_items(self, new_items):
         """Update the items list from main thread"""
         self.clipboard_items = new_items
+        available_ids = {
+            item.split("\t", 1)[0] if "\t" in item else item for item in new_items
+        }
+        self.pinned_item_ids.intersection_update(available_ids)
         self._display_clipboard_items()
 
     def _display_clipboard_items(self, filter_text=""):
@@ -267,6 +280,13 @@ class ClipHistoryMenu(Box):
             for item in self.clipboard_items
             if needle in (item.split("\t", 1)[1] if "\t" in item else item).lower()
         ]
+
+        if self.enable_pinning:
+            filtered_items.sort(
+                key=lambda line: (
+                    0 if line.split("\t", 1)[0] in self.pinned_item_ids else 1
+                )
+            )
 
         self.filtered_items = filtered_items
         self.viewport.v_align = "start"  # Align to top when showing items
@@ -317,6 +337,7 @@ class ClipHistoryMenu(Box):
         parts = item.split("\t", 1)
         item_id = parts[0] if len(parts) > 1 else "0"
         content = parts[1] if len(parts) > 1 else item
+        is_pinned = item_id in self.pinned_item_ids
 
         # Truncate content for display
         display_text = content.strip()
@@ -342,7 +363,7 @@ class ClipHistoryMenu(Box):
                         Image(name="clip-icon", h_align="start"),  # Placeholder
                         Label(
                             name="clip-label",
-                            label="[Image]",
+                            label=self._format_item_label("[Image]", is_pinned),
                             ellipsization="end",
                             v_align="center",
                             h_align="start",
@@ -350,7 +371,11 @@ class ClipHistoryMenu(Box):
                         ),
                     ],
                 ),
-                tooltip_text="Image in clipboard" if self.item_tooltip else None,
+                tooltip_text=(
+                    self._format_item_tooltip("Image in clipboard", is_pinned)
+                    if self.item_tooltip
+                    else None
+                ),
                 on_clicked=lambda *_, id=item_id: self.paste_item(id),
             )
             # Load image preview in background
@@ -372,7 +397,7 @@ class ClipHistoryMenu(Box):
                         ),  # Placeholder
                         Label(
                             name="clip-label",
-                            label="[File]",
+                            label=self._format_item_label("[File]", is_pinned),
                             ellipsization="end",
                             v_align="center",
                             h_align="start",
@@ -380,13 +405,20 @@ class ClipHistoryMenu(Box):
                         ),
                     ],
                 ),
-                tooltip_text="File in clipboard" if self.item_tooltip else None,
+                tooltip_text=(
+                    self._format_item_tooltip("File in clipboard", is_pinned)
+                    if self.item_tooltip
+                    else None
+                ),
                 on_clicked=lambda *_, id=item_id: self.paste_item(id),
             )
         else:
             # For text, create regular item
             button = self.create_text_item_button(
-                item_id, display_text, item_tooltip=self.item_tooltip
+                item_id,
+                display_text,
+                item_tooltip=self.item_tooltip,
+                is_pinned=is_pinned,
             )
 
         # Add key press event handler for Enter key
@@ -464,21 +496,37 @@ class ClipHistoryMenu(Box):
             if isinstance(image_widget, Image):
                 image_widget.set_from_pixbuf(pixbuf)
 
-    def create_text_item_button(self, item_id, display_text, item_tooltip=False):
+    def create_text_item_button(
+        self, item_id, display_text, item_tooltip=False, is_pinned=False
+    ):
         """Create a button for a text clipboard item"""
         return Button(
             name="slot-button",
             child=Label(
                 name="clip-label",
-                label=display_text,
+                label=self._format_item_label(display_text, is_pinned),
                 ellipsization="end",
                 v_align="center",
                 h_align="start",
                 h_expand=True,
             ),
-            tooltip_text=display_text if item_tooltip else None,
+            tooltip_text=(
+                self._format_item_tooltip(display_text, is_pinned)
+                if item_tooltip
+                else None
+            ),
             on_clicked=lambda *_: self.paste_item(item_id),
         )
+
+    def _format_item_label(self, label_text, is_pinned):
+        if self.enable_pinning and is_pinned:
+            return "📌 " + label_text
+        return label_text
+
+    def _format_item_tooltip(self, tooltip_text, is_pinned):
+        if self.enable_pinning and is_pinned:
+            return "Pinned - " + tooltip_text
+        return tooltip_text
 
     def is_file_image(self, content):
         # Check for common image data patterns
@@ -542,6 +590,8 @@ class ClipHistoryMenu(Box):
 
     def delete_item(self, item_id):
         """Delete the selected clipboard item asynchronously"""
+        if item_id in self.pinned_item_ids:
+            self.pinned_item_ids.discard(item_id)
         try:
             launcher = self._make_launcher(Gio.SubprocessFlags.NONE)
             proc = launcher.spawnv(["cliphist", "delete", item_id])
@@ -572,6 +622,7 @@ class ClipHistoryMenu(Box):
         """Callback when clear completes"""
         try:
             proc.wait_finish(result)
+            self.pinned_item_ids.clear()
             self._pending_updates = True
             if not self._loading:
                 self._load_clipboard_items_async()
@@ -604,10 +655,32 @@ class ClipHistoryMenu(Box):
         elif event.keyval == Gdk.KEY_Delete:
             self.delete_selected_item()
             return True
+        elif event.keyval in (Gdk.KEY_p, Gdk.KEY_P) and self.enable_pinning:
+            self.toggle_selected_pin()
+            return True
         elif event.keyval == Gdk.KEY_Escape:
             self.close()
             return True
         return False
+
+    def toggle_selected_pin(self):
+        """Toggle pin for currently selected clipboard item."""
+        item_id = self._get_selected_item_id()
+        if item_id is None:
+            return
+        self.toggle_pin_item(item_id)
+
+    def toggle_pin_item(self, item_id):
+        """Pin or unpin item, then refresh current list."""
+        if not self.enable_pinning:
+            return
+
+        if item_id in self.pinned_item_ids:
+            self.pinned_item_ids.remove(item_id)
+        else:
+            self.pinned_item_ids.add(item_id)
+
+        self._display_clipboard_items(self.search_entry.get_text())
 
     def update_selection(self, new_index):
         """Update the selected item in the viewport"""
@@ -701,6 +774,9 @@ class ClipHistoryMenu(Box):
     def on_item_key_press(self, widget, event, item_id):
         """Handle key press events on clipboard items"""
         if event.type == Gdk.EventType.BUTTON_PRESS:
+            if self.enable_pinning and getattr(event, "button", 0) == 3:
+                self.toggle_pin_item(item_id)
+                return True
             # Copy item to clipboard and close
             self.paste_item(item_id)
             return True
@@ -708,6 +784,9 @@ class ClipHistoryMenu(Box):
         if event.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
             # Copy item to clipboard and close
             self.paste_item(item_id)
+            return True
+        if event.keyval in (Gdk.KEY_p, Gdk.KEY_P) and self.enable_pinning:
+            self.toggle_pin_item(item_id)
             return True
         return False
 
