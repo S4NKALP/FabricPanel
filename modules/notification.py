@@ -41,6 +41,7 @@ class NotificationPopup(BaseWindow):
 
     def __init__(self, widget_config: BarConfig, **kwargs):
         self._server = notification_service
+        self._active_notifications: dict[int, NotificationRevealer] = {}
 
         self.widget_config = widget_config
 
@@ -73,6 +74,14 @@ class NotificationPopup(BaseWindow):
             **kwargs,
         )
 
+    def _unregister_notification(
+        self,
+        notification_id: int,
+        revealer: "NotificationRevealer",
+    ):
+        if self._active_notifications.get(notification_id) is revealer:
+            self._active_notifications.pop(notification_id, None)
+
     def on_new_notification(self, fabric_notification: Notifications, id):
         notification = fabric_notification.get_notification_from_id(id)
 
@@ -80,9 +89,19 @@ class NotificationPopup(BaseWindow):
         if self._server.dont_disturb or notification.app_name in self.ignored_apps:
             return
 
+        replaces_id = getattr(notification, "replaces_id", 0) or 0
+        if replaces_id:
+            old_box = self._active_notifications.pop(replaces_id, None)
+            if old_box is not None:
+                old_box.destroy()
+
         new_box = NotificationRevealer(self.config, notification)
         self.notifications.add(new_box)
         new_box.set_reveal_child(True)
+        self._active_notifications[id] = new_box
+        new_box.connect(
+            "destroy", lambda *_: self._unregister_notification(id, new_box)
+        )
 
         logger.info(
             f"{Colors.INFO}[Notification] New notification from "
