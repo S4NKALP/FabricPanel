@@ -77,6 +77,7 @@ LAZY_WIDGETS_LIST = {
     "bluetooth": "widgets.bluetooth.BlueToothWidget",
     "brightness": "widgets.brightness.BrightnessWidget",
     "cava": "widgets.cava.CavaWidget",
+    "cheatsheet": "widgets.cheatsheet.CheatSheetWidget",
     "click_counter": "widgets.click_counter.ClickCounterWidget",
     "breathe": "widgets.breathing.BreatheWidget",
     "clipboard": "widgets.clipboard.ClipBoardWidget",

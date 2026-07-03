@@ -372,6 +372,16 @@ tooltip = true
 hide_when_inactive = true
 modules = ["camera", "microphone", "screen"]
 
+
+[widgets.cheatsheet]
+label = true
+label_text = "Keys"
+tooltip = true
+title = "Hyprland Cheatsheet"
+columns = 3
+groups_per_page = 6
+max_entries_per_group = 8
+
 [widgets.custom_button_group]
 spacing = 4
 
@@ -409,7 +419,7 @@ title = "Keybinds"
 
 [layout]
 left_section = ["@group:0"]
-middle_section = ["date_time", "weather", "mpris"]
+middle_section = ["date_time", "weather", "mpris","cheatsheet"]
 right_section = ["@collapsible:0", "@group:1","clipboard", "system_tray", "power"]
 
 [[widget_groups]]

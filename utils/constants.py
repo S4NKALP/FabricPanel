@@ -151,6 +151,7 @@ DEFAULT_CONFIG = {
             },
         },
         "divider": {"size": 2},
+        "cheatsheet": {},
         "hypridle": {
             "enabled_icon": "",
             "disabled_icon": "",

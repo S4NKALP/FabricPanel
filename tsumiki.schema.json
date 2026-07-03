@@ -1599,6 +1599,86 @@
 						"tooltip"
 					]
 				},
+				"cheatsheet": {
+					"type": "object",
+					"properties": {
+						"icon": {
+							"type": "string",
+							"default": "󰌌"
+						},
+						"label": {
+							"type": "boolean",
+							"default": true
+						},
+						"label_text": {
+							"type": "string",
+							"default": "Keys"
+						},
+						"tooltip": {
+							"type": "boolean",
+							"default": true
+						},
+						"title": {
+							"type": "string",
+							"default": "Hyprland Cheatsheet"
+						},
+						"columns": {
+							"type": "integer",
+							"minimum": 1,
+							"default": 3
+						},
+						"groups_per_page": {
+							"type": "integer",
+							"minimum": 1,
+							"default": 6
+						},
+						"max_entries_per_group": {
+							"type": "integer",
+							"minimum": 1,
+							"default": 8
+						},
+						"groups": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"title": {
+										"type": "string"
+									},
+									"entries": {
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"keys": {
+													"type": "string"
+												},
+												"description": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"keys",
+												"description"
+											],
+											"additionalProperties": false
+										}
+									}
+								},
+								"required": [
+									"title",
+									"entries"
+								],
+								"additionalProperties": false
+							}
+						}
+					},
+					"required": [
+						"icon",
+						"label",
+						"tooltip"
+					]
+				},
 				"kanban": {
 					"type": "object",
 					"properties": {
@@ -2082,6 +2162,7 @@
 									"microphone",
 									"network_usage",
 									"clipboard",
+									"cheatsheet",
 									"ocr",
 									"power",
 									"recorder",
@@ -2171,6 +2252,7 @@
 									"microphone",
 									"network_usage",
 									"clipboard",
+									"cheatsheet",
 									"ocr",
 									"power",
 									"recorder",
@@ -2260,6 +2342,7 @@
 									"microphone",
 									"network_usage",
 									"clipboard",
+									"cheatsheet",
 									"ocr",
 									"power",
 									"recorder",
@@ -2362,6 +2445,7 @@
 										"microphone",
 										"network_usage",
 										"clipboard",
+										"cheatsheet",
 										"ocr",
 										"power",
 										"recorder",
@@ -2472,6 +2556,7 @@
 										"microphone",
 										"network_usage",
 										"clipboard",
+										"cheatsheet",
 										"ocr",
 										"power",
 										"recorder",

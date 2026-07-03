@@ -12,9 +12,7 @@
   @if $enabled {
     $shadow:
       0 0 0 variable.$bar-border-width theme.$general-shadow-color,
-      $offset
-        $blur
-        $spread
+      $offset $blur $spread
         color.adjust(theme.$general-shadow-color, $alpha: calc($opacity * 0.01 - 1));
     box-shadow: $shadow;
   } @else {
