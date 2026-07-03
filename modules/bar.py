@@ -205,7 +205,7 @@ class Bar(BaseWindow):
 
         super().__init__(
             name="panel",
-            layer=bar_config.get("layer", "overlay"),
+            layer=bar_config.get("layer", "top"),
             anchor=anchor,
             pass_through=False,
             exclusivity="auto",
