@@ -93,7 +93,9 @@ class NotificationPopup(BaseWindow):
         if replaces_id:
             old_box = self._active_notifications.pop(replaces_id, None)
             if old_box is not None:
-                old_box.destroy()
+                old_box.replace_notification(notification)
+                self._active_notifications[id] = old_box
+                return
 
         new_box = NotificationRevealer(self.config, notification)
         self.notifications.add(new_box)
@@ -506,13 +508,16 @@ class NotificationRevealer(Revealer):
         self.timeout = self.notification_box.get_timeout()
         self._notification = notification
         self._is_closing = False
+        self._closed_handler_id = None
+
+        self._content_box = Box(
+            style="margin: 12px;",
+            children=[self.notification_box],
+        )
 
         super().__init__(
             name="notification-revealer",
-            child=Box(
-                style="margin: 12px;",
-                children=[self.notification_box],
-            ),
+            child=self._content_box,
             transition_duration=config.get("transition_duration", 200),
             transition_type=config.get("transition_type", "slide-up"),
             **kwargs,
@@ -520,7 +525,28 @@ class NotificationRevealer(Revealer):
 
         self.connect("notify::child-revealed", self.on_child_revealed)
 
-        self._notification.connect("closed", self.on_resolved)
+        self._closed_handler_id = self._notification.connect("closed", self.on_resolved)
+
+    def replace_notification(self, notification: Notification):
+        config = self.notification_box.config
+        self.notification_box.stop_timeout()
+        self.notification_box.destroy()
+
+        self._notification = notification
+        self.notification_box = NotificationWidget(
+            config,
+            notification,
+        )
+        self.timeout = self.notification_box.get_timeout()
+        self._content_box.children = [self.notification_box]
+
+        self._closed_handler_id = self._notification.connect("closed", self.on_resolved)
+
+        if not self.get_reveal_child():
+            self._is_closing = False
+            self.set_reveal_child(True)
+        if self.timeout > 0:
+            self.notification_box.start_timeout()
 
     def on_child_revealed(self, *_):
         if not self.get_child_revealed():
@@ -529,10 +555,9 @@ class NotificationRevealer(Revealer):
             if self.timeout > 0:
                 self.notification_box.start_timeout()
 
-    def on_resolved(
-        self,
-        *_,
-    ):
+    def on_resolved(self, notification, *_):
+        if notification is not self._notification:
+            return
         if self._is_closing:
             return
         self._is_closing = True
