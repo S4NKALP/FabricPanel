@@ -1630,47 +1630,12 @@
 						"groups_per_page": {
 							"type": "integer",
 							"minimum": 1,
-							"default": 6
+							"default": 9
 						},
 						"max_entries_per_group": {
 							"type": "integer",
 							"minimum": 1,
 							"default": 8
-						},
-						"groups": {
-							"type": "array",
-							"items": {
-								"type": "object",
-								"properties": {
-									"title": {
-										"type": "string"
-									},
-									"entries": {
-										"type": "array",
-										"items": {
-											"type": "object",
-											"properties": {
-												"keys": {
-													"type": "string"
-												},
-												"description": {
-													"type": "string"
-												}
-											},
-											"required": [
-												"keys",
-												"description"
-											],
-											"additionalProperties": false
-										}
-									}
-								},
-								"required": [
-									"title",
-									"entries"
-								],
-								"additionalProperties": false
-							}
 						}
 					},
 					"required": [

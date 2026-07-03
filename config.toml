@@ -373,15 +373,6 @@ hide_when_inactive = true
 modules = ["camera", "microphone", "screen"]
 
 
-[widgets.cheatsheet]
-label = true
-label_text = "Keys"
-tooltip = true
-title = "Hyprland Cheatsheet"
-columns = 3
-groups_per_page = 6
-max_entries_per_group = 8
-
 [widgets.custom_button_group]
 spacing = 4
 
@@ -403,18 +394,14 @@ show_icon = true
 label = false
 tooltip = true
 
-[widgets.keybinds]
-icon = "󰌌"
-label = false
+[widgets.cheatsheet]
+label = true
+label_text = "Keys"
 tooltip = true
-show_icon = true
-width = 800
-height = 500
-hide_empty_descriptions = true
-anchor = "center"
-transition_type = "crossfade"
-transition_duration = 300
-title = "Keybinds"
+title = "Hyprland Cheatsheet"
+columns = 3
+groups_per_page = 6
+max_entries_per_group = 8
 
 
 [layout]

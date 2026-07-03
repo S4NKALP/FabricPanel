@@ -1,5 +1,9 @@
+import json
+import subprocess
+from collections import defaultdict
 from math import ceil
 
+from fabric.utils import logger
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.label import Label
@@ -9,67 +13,25 @@ from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
 from utils.widget_utils import nerd_font_icon
 
-_DEFAULT_GROUPS = [
-    {
-        "title": "Session",
-        "entries": [
-            {"keys": "SUPER + Q", "description": "Close active window"},
-            {"keys": "SUPER + M", "description": "Exit Hyprland session"},
-            {"keys": "SUPER + SHIFT + E", "description": "Power menu"},
-            {"keys": "SUPER + SHIFT + R", "description": "Reload config"},
-        ],
-    },
-    {
-        "title": "Apps",
-        "entries": [
-            {"keys": "SUPER + Return", "description": "Terminal"},
-            {"keys": "SUPER + D", "description": "App launcher"},
-            {"keys": "SUPER + E", "description": "File manager"},
-            {"keys": "SUPER + B", "description": "Browser"},
-        ],
-    },
-    {
-        "title": "Windows",
-        "entries": [
-            {"keys": "SUPER + H/J/K/L", "description": "Focus window"},
-            {"keys": "SUPER + SHIFT + H/J/K/L", "description": "Move window"},
-            {"keys": "SUPER + F", "description": "Toggle fullscreen"},
-            {"keys": "SUPER + V", "description": "Toggle floating"},
-        ],
-    },
-    {
-        "title": "Layout",
-        "entries": [
-            {"keys": "SUPER + P", "description": "Pseudo tiling"},
-            {"keys": "SUPER + J", "description": "Split toggle"},
-            {"keys": "SUPER + S", "description": "Toggle special workspace"},
-            {
-                "keys": "SUPER + SHIFT + S",
-                "description": "Move to special workspace",
-            },
-        ],
-    },
-    {
-        "title": "Workspaces",
-        "entries": [
-            {"keys": "SUPER + [1..0]", "description": "Switch workspace"},
-            {
-                "keys": "SUPER + SHIFT + [1..0]",
-                "description": "Move window to workspace",
-            },
-            {"keys": "SUPER + Mouse Wheel", "description": "Cycle workspace"},
-        ],
-    },
-    {
-        "title": "System",
-        "entries": [
-            {"keys": "SUPER + PRINT", "description": "Area screenshot"},
-            {"keys": "PRINT", "description": "Full screenshot"},
-            {"keys": "XF86AudioRaiseVolume", "description": "Volume up"},
-            {"keys": "XF86AudioLowerVolume", "description": "Volume down"},
-        ],
-    },
-]
+_MODMASK_MAP = {
+    64: "SUPER",
+    8: "ALT",
+    4: "CTRL",
+    1: "SHIFT",
+}
+
+
+def _modmask_to_key(modmask: int) -> str:
+    keys = [
+        key
+        for bitfield, key in _MODMASK_MAP.items()
+        if (modmask & bitfield) == bitfield
+    ]
+    known_bits = sum(_MODMASK_MAP.keys())
+    unknown_bits = modmask & (~known_bits)
+    if unknown_bits != 0:
+        keys.append(f"({unknown_bits})")
+    return " + ".join(keys)
 
 
 class CheatSheetMenu(Box):
@@ -79,7 +41,7 @@ class CheatSheetMenu(Box):
         super().__init__(
             name="cheatsheet-menu",
             orientation="v",
-            spacing=12,
+            spacing=8,
             h_expand=True,
             **kwargs,
         )
@@ -87,13 +49,20 @@ class CheatSheetMenu(Box):
         self._parent = parent
         self.config = config or {}
 
-        self.columns = max(1, int(self.config.get("columns", 3)))
-        self.groups_per_page = max(1, int(self.config.get("groups_per_page", 6)))
+        self.columns = 2
+        self.groups_per_page = self.columns * 2
         self.max_entries_per_group = max(
             1, int(self.config.get("max_entries_per_group", 8))
         )
+        self.menu_width = 1200
+        horizontal_padding = 28
+        row_spacing_total = (self.columns - 1) * 8
+        self.group_width = max(
+            180,
+            (self.menu_width - horizontal_padding - row_spacing_total) // self.columns,
+        )
 
-        self.groups = self._normalize_groups(self.config.get("groups", _DEFAULT_GROUPS))
+        self.groups = self._load_groups()
         self.current_page = 0
         self.total_pages = max(1, ceil(len(self.groups) / self.groups_per_page))
 
@@ -110,7 +79,7 @@ class CheatSheetMenu(Box):
             transition_type="slide-left-right",
             transition_duration=180,
             h_expand=True,
-            v_expand=True,
+            v_expand=False,
         )
 
         self.prev_button = Button(
@@ -143,7 +112,7 @@ class CheatSheetMenu(Box):
             name="cheatsheet-pagination",
             style_classes=["cheatsheet-pagination"],
             orientation="h",
-            spacing=12,
+            spacing=8,
             h_align="center",
             children=[self.prev_button, self.page_label, self.next_button],
         )
@@ -152,32 +121,77 @@ class CheatSheetMenu(Box):
 
         self._build_pages()
 
-    def _normalize_groups(self, raw_groups):
-        groups = []
-        if not isinstance(raw_groups, list):
-            raw_groups = _DEFAULT_GROUPS
+    def _load_groups(self):
+        loaded_groups = self._load_hyprland_groups()
+        if loaded_groups:
+            return loaded_groups
 
-        for group in raw_groups:
-            if not isinstance(group, dict):
+        return [
+            {
+                "title": "Hyprland",
+                "entries": [
+                    {
+                        "keys": "N/A",
+                        "description": "No keybinds from hyprctl binds -j",
+                    }
+                ],
+            }
+        ]
+
+    def _load_hyprland_groups(self):
+        """Load and group keybinds from hyprctl binds -j."""
+        try:
+            output = subprocess.check_output(["hyprctl", "binds", "-j"], text=True)
+            binds = json.loads(output)
+        except Exception as error:
+            logger.debug(f"[Cheatsheet] Failed to load hyprctl binds: {error}")
+            return []
+
+        grouped_entries: dict[str, list[dict[str, str]]] = defaultdict(list)
+
+        for bind in binds:
+            if not isinstance(bind, dict):
                 continue
-            title = str(group.get("title", "Group")).strip()
-            entries = group.get("entries", [])
-            if not isinstance(entries, list):
+
+            modmask = int(bind.get("modmask", 0) or 0)
+            key = str(bind.get("key", "")).strip()
+            dispatcher = str(bind.get("dispatcher", "")).strip()
+            arg = str(bind.get("arg", "")).strip()
+            description = str(bind.get("description", "")).strip()
+
+            modifier_keys = _modmask_to_key(modmask)
+            keybind = (
+                f"{modifier_keys} + {key}".strip(" +")
+                if modifier_keys
+                else key
+            )
+
+            if not keybind:
                 continue
 
-            parsed_entries = []
-            for entry in entries:
-                if not isinstance(entry, dict):
-                    continue
-                keys = str(entry.get("keys", "")).strip()
-                description = str(entry.get("description", "")).strip()
-                if keys and description:
-                    parsed_entries.append({"keys": keys, "description": description})
+            if not description:
+                description = f"{dispatcher}: {arg}".strip(": ")
+            if not description:
+                description = dispatcher or "Unlabeled action"
 
-            if parsed_entries:
-                groups.append({"title": title or "Group", "entries": parsed_entries})
+            title = dispatcher.replace("_", " ").strip().title() or "Misc"
+            grouped_entries[title].append(
+                {
+                    "keys": keybind,
+                    "description": description,
+                }
+            )
 
-        return groups or _DEFAULT_GROUPS
+        groups = [
+            {
+                "title": title,
+                "entries": entries,
+            }
+            for title, entries in sorted(grouped_entries.items())
+            if entries
+        ]
+
+        return groups
 
     def _build_pages(self):
         self.stack.children = []
@@ -191,7 +205,7 @@ class CheatSheetMenu(Box):
                 name="cheatsheet-page",
                 style_classes=["cheatsheet-page"],
                 orientation="v",
-                spacing=12,
+                spacing=8,
             )
 
             for row_start in range(0, len(page_groups), self.columns):
@@ -200,7 +214,8 @@ class CheatSheetMenu(Box):
                     name="cheatsheet-row",
                     style_classes=["cheatsheet-row"],
                     orientation="h",
-                    spacing=12,
+                    spacing=8,
+                    homogeneous=True,
                     h_expand=True,
                 )
 
@@ -208,12 +223,14 @@ class CheatSheetMenu(Box):
                     row.add(self._build_group(group))
 
                 for _ in range(self.columns - len(row_groups)):
+                    placeholder = Box(
+                        name="cheatsheet-group-placeholder",
+                        style_classes=["cheatsheet-group-placeholder"],
+                        h_expand=True,
+                    )
+                    placeholder.set_size_request(self.group_width, -1)
                     row.add(
-                        Box(
-                            name="cheatsheet-group-placeholder",
-                            style_classes=["cheatsheet-group-placeholder"],
-                            h_expand=True,
-                        )
+                        placeholder
                     )
 
                 page.add(row)
@@ -227,9 +244,10 @@ class CheatSheetMenu(Box):
             name="cheatsheet-group",
             style_classes=["cheatsheet-group"],
             orientation="v",
-            spacing=8,
+            spacing=6,
             h_expand=True,
         )
+        box.set_size_request(self.group_width, -1)
         box.add(
             Label(
                 name="cheatsheet-group-title",
@@ -246,7 +264,7 @@ class CheatSheetMenu(Box):
                 name="cheatsheet-entry",
                 style_classes=["cheatsheet-entry"],
                 orientation="h",
-                spacing=10,
+                spacing=6,
             )
             row.add(
                 Label(
@@ -254,6 +272,8 @@ class CheatSheetMenu(Box):
                     style_classes=["cheatsheet-key"],
                     label=entry["keys"],
                     h_align="start",
+                    ellipsization="end",
+                    max_width_chars=18,
                 )
             )
             row.add(
@@ -263,6 +283,8 @@ class CheatSheetMenu(Box):
                     label=entry["description"],
                     h_align="start",
                     h_expand=True,
+                    ellipsization="end",
+                    max_width_chars=36,
                 )
             )
             box.add(row)
