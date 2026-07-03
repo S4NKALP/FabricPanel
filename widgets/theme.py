@@ -63,6 +63,6 @@ class ThemeSwitcherWidget(ButtonWidget):
 
         if self.config.get("notify", True):
             send_notification("Tsumiki", f"Theme switched to {self.current_theme}")
-        copy_themev2(self.current_theme)
+        copy_themev2(self.current_theme, theme_config.get("mode", "dark"))
         update_theme_config(self.current_theme)
         self.set_tooltip_text(self.current_theme)

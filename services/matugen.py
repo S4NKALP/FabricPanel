@@ -31,17 +31,16 @@ class MatugenService(SingletonService):
         super().__init__(**kwargs)
         helpers.check_executable_exists("matugen")
         self._config = theme_config.get("matugen", {})
+        self._mode = self._config.get("mode", "dark")
 
     def _build_cmd(self, image_path: str) -> str:
         """Build matugen command from config."""
-        cfg = self._config
-        scheme = cfg.get("scheme", "scheme-tonal-spot")
-        mode = cfg.get("mode", "dark")
-        contrast = cfg.get("contrast", 0.0)
+        scheme = self._config.get("scheme", "scheme-tonal-spot")
+        contrast = self._config.get("contrast", 0.0)
 
         return (
             f"matugen image -q {image_path} -t {scheme} "
-            f"--mode {mode} --contrast {contrast} --config {_CONFIG_PATH}"
+            f"--mode {self._mode} --contrast {contrast} --config {_CONFIG_PATH} "
             f"--source-color-index 0"
         )
 

@@ -441,7 +441,7 @@ def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
 
 # Function to copy the selected theme to the main styles directory
 @run_in_thread
-def copy_themev2(theme: str):
+def copy_themev2(theme: str, mode: str = "dark"):
     source_theme_dir = get_relative_path("../themes")
     destination_file = f"{get_relative_path('../styles')}/_theme.scss"
     source_file = f"{source_theme_dir}/{theme}.toml"
@@ -454,7 +454,11 @@ def copy_themev2(theme: str):
 
     try:
         contents = read_toml_file(source_file)
-        write_css_settings(flatten_dict(contents), destination_file)
+        if not contents:
+            raise FileNotFoundError(source_file)
+
+        selected_theme = contents.get(mode, contents)
+        write_css_settings(flatten_dict(selected_theme), destination_file)
 
     except FileNotFoundError:
         logger.exception(
