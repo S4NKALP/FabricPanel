@@ -403,10 +403,16 @@ columns = 3
 groups_per_page = 6
 max_entries_per_group = 8
 
+[widgets.pomodoro]
+icon = "🍅"
+label = true
+label_text = "Pomo"
+tooltip = true
+auto_start = false
 
 [layout]
 left_section = ["@group:0"]
-middle_section = ["date_time", "weather", "mpris","cheatsheet"]
+middle_section = ["date_time", "weather", "mpris"]
 right_section = ["@collapsible:0", "@group:1","clipboard", "system_tray", "power"]
 
 [[widget_groups]]
@@ -532,12 +538,6 @@ enabled = false
 anchor = "bottom-right"
 layer = "bottom"
 
-[modules.cheatsheet]
-enabled = false
-layer = "top"
-anchor = "center"
-transition_type = "crossfade"
-transition_duration = 350
 
 [general]
 check_updates = false

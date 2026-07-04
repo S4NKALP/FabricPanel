@@ -1644,6 +1644,37 @@
 						"tooltip"
 					]
 				},
+				"pomodoro": {
+					"type": "object",
+					"properties": {
+						"icon": {
+							"type": "string",
+							"default": "🍅"
+						},
+						"label": {
+							"type": "boolean",
+							"default": true
+						},
+						"label_text": {
+							"type": "string",
+							"default": "Pomo"
+						},
+						"tooltip": {
+							"type": "boolean",
+							"default": true
+						},
+						"auto_start": {
+							"type": "boolean",
+							"default": false,
+							"description": "Automatically start the timer when the widget is created"
+						}
+					},
+					"required": [
+						"icon",
+						"label",
+						"tooltip"
+					]
+				},
 				"kanban": {
 					"type": "object",
 					"properties": {
@@ -2128,6 +2159,7 @@
 									"network_usage",
 									"clipboard",
 									"cheatsheet",
+									"pomodoro",
 									"ocr",
 									"power",
 									"recorder",
@@ -2218,6 +2250,7 @@
 									"network_usage",
 									"clipboard",
 									"cheatsheet",
+									"pomodoro",
 									"ocr",
 									"power",
 									"recorder",
@@ -2308,6 +2341,7 @@
 									"network_usage",
 									"clipboard",
 									"cheatsheet",
+									"pomodoro",
 									"ocr",
 									"power",
 									"recorder",
@@ -2411,6 +2445,7 @@
 										"network_usage",
 										"clipboard",
 										"cheatsheet",
+										"pomodoro",
 										"ocr",
 										"power",
 										"recorder",
@@ -2522,6 +2557,7 @@
 										"network_usage",
 										"clipboard",
 										"cheatsheet",
+										"pomodoro",
 										"ocr",
 										"power",
 										"recorder",
