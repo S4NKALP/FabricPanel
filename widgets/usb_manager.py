@@ -13,6 +13,7 @@ from fabric.widgets.button import Button
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.label import Label
 
+from shared.buttons import HoverButton
 from shared.list import ListBox
 from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
@@ -37,13 +38,12 @@ class USBManagerMenu(Box):
         self._refresh_timer_id = 0
 
         self.title = Label(
-            name="usb-manager-title",
             label="USB Manager",
             h_align="start",
             style_classes=["panel-text"],
         )
 
-        self.refresh_button = Button(
+        self.refresh_button = HoverButton(
             name="usb-manager-refresh",
             style_classes=["usb-manager-btn"],
             child=nerd_font_icon(
@@ -70,16 +70,22 @@ class USBManagerMenu(Box):
             v_expand=True,
         )
 
-        self.unmount_all_button = Button(
+        self.unmount_all_button = HoverButton(
             name="usb-manager-unmount-all",
             style_classes=["usb-manager-btn"],
-            label="Unmount All",
+            child=Label(
+                label="Unmount All",
+                style_classes=["panel-text", "operation-all"],
+            ),
             on_clicked=self.unmount_all,
         )
-        self.eject_all_button = Button(
+        self.eject_all_button = HoverButton(
             name="usb-manager-eject-all",
             style_classes=["usb-manager-btn"],
-            label="Eject All",
+            child=Label(
+                label="Mount All",
+                style_classes=["panel-text", "operation-all"],
+            ),
             on_clicked=self.eject_all,
         )
 
@@ -259,7 +265,6 @@ class USBManagerMenu(Box):
         details = Label(
             label=" • ".join([part for part in details_parts if part]),
             h_align="start",
-            name="usb-manager-device-details",
             style_classes=["panel-text"],
         )
 
@@ -274,37 +279,19 @@ class USBManagerMenu(Box):
             ),
         )
 
-        eject_button = Button(
-            name="usb-manager-eject",
-            style_classes=["usb-manager-btn"],
-            label="Eject",
-            on_clicked=lambda *_, d=device: self.eject_device(d),
-        )
-
-        actions = Box(
-            name="usb-manager-actions",
-            orientation="h",
-            spacing=6,
-            children=[action_button, eject_button],
+        icon = nerd_font_icon(
+            icon="󰕓",
+            props={"style_classes": ["panel-font-icon"]},
         )
 
         header = Box(
             name="usb-manager-item-header",
             orientation="h",
             h_expand=True,
-            children=[title, actions],
+            children=[icon, title],
         )
 
-        row_children = [header, details]
-        if mounted:
-            row_children.append(
-                Label(
-                    label=device.get("mountpoint", ""),
-                    h_align="start",
-                    name="usb-manager-mountpoint",
-                    style_classes=["panel-text"],
-                )
-            )
+        row_children = [header, details, action_button]
 
         return Box(
             name="usb-manager-item",

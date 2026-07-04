@@ -4,21 +4,18 @@
 @use "variable";
 
 #usb_manager {
-  @include common.widget_border(variable.$bar-widgets-usb_manager-border-radius,
+  @include common.widget_border(
+    variable.$bar-widgets-usb_manager-border-radius,
     variable.$bar-widgets-usb_manager-border-enabled,
-    variable.$bar-widgets-usb_manager-border-width );
+    variable.$bar-widgets-usb_manager-border-width
+  );
 
   @include common.nerd-icon(variable.$bar-widgets-usb_manager-icon_size, null);
 }
 
-
-
-
 #usb-manager-menu {
   min-width: 180px;
   padding: 10px;
-
-
 
   #usb-manager-header {
     margin-bottom: 6px;
@@ -36,30 +33,38 @@
     padding: 8px;
     border-radius: 10px;
     background-color: rgba(255, 255, 255, 0.05);
+    margin-top: 8px;
 
-    #usb-manager-item-header {
+    &-header {
       margin-bottom: 2px;
     }
   }
 
-
   .usb-manager-btn {
-    padding: 4px 10px;
-    border-radius: 12px;
-    background-color: rgba(255, 255, 255, 0.08);
     background-color: theme.$accent-green;
     color: theme.$background-dark;
 
-    &:hover {
-      background-color: color.mix(theme.$accent-green, black, 80%);
+    border: variable.$border;
+    border-width: 2px;
+    border-radius: variable.$radius;
+    padding: 4px 10px;
+
+    .operation-all {
+      padding-right: common.toEm(8);
     }
 
+    &:hover {
+      @extend %widget_hover;
+    }
+
+    #usb-manager-action {
+      font-weight: 600;
+    }
   }
 
-  #usb-manager-refresh{
+  #usb-manager-refresh {
     border-radius: variable.$radius-large;
   }
-
 
   #usb-manager-footer {
     margin-top: 6px;
