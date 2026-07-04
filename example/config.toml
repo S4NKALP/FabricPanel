@@ -146,6 +146,13 @@ tooltip = true
 graph_length = 4
 unit = "gb"
 
+[widgets.usb_manager]
+icon = ""
+label = false
+tooltip = true
+auto_refresh = true
+refresh_interval = 5
+
 
 [widgets.memory]
 show_icon = true
@@ -408,11 +415,10 @@ icon = "🍅"
 label = true
 label_text = "Pomo"
 tooltip = true
-auto_start = false
 
 [layout]
 left_section = ["@group:0"]
-middle_section = ["date_time", "weather", "mpris"]
+middle_section = ["date_time", "weather", "usb_manager"]
 right_section = ["@collapsible:0", "@group:1","clipboard", "system_tray", "power"]
 
 [[widget_groups]]

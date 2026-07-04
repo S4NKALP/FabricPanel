@@ -611,6 +611,17 @@ WorldClock = TypedDict(
 # ThemeSwitcher configuration
 ThemeSwitcher = TypedDict("ThemeSwitcher", {**BaseConfig.__annotations__, "icon": str})
 
+# USB manager configuration
+USBManager = TypedDict(
+    "USBManager",
+    {
+        **BaseConfig.__annotations__,
+        "icon": str,
+        "auto_refresh": bool,
+        "refresh_interval": int,
+    },
+)
+
 # Hyprpicker configuration
 HyprPicker = TypedDict(
     "HyprPicker",
@@ -807,6 +818,7 @@ class Widgets(TypedDict):
     taskbar: TaskBar
     theme: Theme
     theme_switcher: ThemeSwitcher
+    usb_manager: USBManager
     updates: Updates
     volume: Volume
     weather: Weather

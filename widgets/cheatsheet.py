@@ -160,11 +160,7 @@ class CheatSheetMenu(Box):
             description = str(bind.get("description", "")).strip()
 
             modifier_keys = _modmask_to_key(modmask)
-            keybind = (
-                f"{modifier_keys} + {key}".strip(" +")
-                if modifier_keys
-                else key
-            )
+            keybind = f"{modifier_keys} + {key}".strip(" +") if modifier_keys else key
 
             if not keybind:
                 continue
@@ -229,9 +225,7 @@ class CheatSheetMenu(Box):
                         h_expand=True,
                     )
                     placeholder.set_size_request(self.group_width, -1)
-                    row.add(
-                        placeholder
-                    )
+                    row.add(placeholder)
 
                 page.add(row)
 

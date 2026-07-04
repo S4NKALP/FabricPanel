@@ -1,0 +1,67 @@
+@use "sass:color";
+@use "theme";
+@use "common";
+@use "variable";
+
+#usb_manager {
+  @include common.widget_border(variable.$bar-widgets-usb_manager-border-radius,
+    variable.$bar-widgets-usb_manager-border-enabled,
+    variable.$bar-widgets-usb_manager-border-width );
+
+  @include common.nerd-icon(variable.$bar-widgets-usb_manager-icon_size, null);
+}
+
+
+
+
+#usb-manager-menu {
+  min-width: 180px;
+  padding: 10px;
+
+
+
+  #usb-manager-header {
+    margin-bottom: 6px;
+  }
+
+  #usb-manager-title {
+    font-weight: 600;
+  }
+
+  #usb-manager-list {
+    min-height: 160px;
+  }
+
+  #usb-manager-item {
+    padding: 8px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+
+    #usb-manager-item-header {
+      margin-bottom: 2px;
+    }
+  }
+
+
+  .usb-manager-btn {
+    padding: 4px 10px;
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.08);
+    background-color: theme.$accent-green;
+    color: theme.$background-dark;
+
+    &:hover {
+      background-color: color.mix(theme.$accent-green, black, 80%);
+    }
+
+  }
+
+  #usb-manager-refresh{
+    border-radius: variable.$radius-large;
+  }
+
+
+  #usb-manager-footer {
+    margin-top: 6px;
+  }
+}

@@ -115,6 +115,7 @@ LAZY_WIDGETS_LIST = {
     "taskbar": "widgets.taskbar.TaskBarWidget",
     "theme_switcher": "widgets.theme.ThemeSwitcherWidget",
     "updates": "widgets.updates.UpdatesWidget",
+    "usb_manager": "widgets.usb_manager.USBManagerWidget",
     "volume": "widgets.volume.VolumeWidget",
     "wallpaper": "widgets.wallpaper.WallpaperWidget",
     "weather": "widgets.weather.WeatherWidget",

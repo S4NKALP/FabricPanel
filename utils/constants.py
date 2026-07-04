@@ -152,7 +152,12 @@ DEFAULT_CONFIG = {
         },
         "divider": {"size": 2},
         "cheatsheet": {},
-        "pomodoro": {},
+        "pomodoro": {
+            "icon": "🍅",
+            "label": True,
+            "label_text": "Pomo",
+            "tooltip": True,
+        },
         "hypridle": {
             "enabled_icon": "",
             "disabled_icon": "",
@@ -321,6 +326,13 @@ DEFAULT_CONFIG = {
             "flatpak": False,
             "snap": False,
             "brew": False,
+        },
+        "usb_manager": {
+            "icon": "",
+            "label": False,
+            "tooltip": True,
+            "auto_refresh": True,
+            "refresh_interval": 5,
         },
         "volume": {
             "tooltip": True,

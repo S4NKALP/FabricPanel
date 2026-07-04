@@ -156,7 +156,9 @@ class PomodoroMenu(Box):
         if self.is_work_session:
             return self.work_duration
         else:
-            is_long_break = self.completed_sessions % self.sessions_until_long_break == 0
+            is_long_break = (
+                self.completed_sessions % self.sessions_until_long_break == 0
+            )
             return self.long_break if is_long_break else self.short_break
 
     def _get_time_left(self) -> int:
@@ -186,9 +188,7 @@ class PomodoroMenu(Box):
         )
 
         phase = self._get_session_phase()
-        self.phase_label.set_markup(
-            f"<span font='12' color='#ffffff'>{phase}</span>"
-        )
+        self.phase_label.set_markup(f"<span font='12' color='#ffffff'>{phase}</span>")
 
         self.session_label.set_markup(
             f"<span font='11' color='#cccccc'>"

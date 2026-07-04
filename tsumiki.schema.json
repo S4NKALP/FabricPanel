@@ -151,6 +151,43 @@
 						"hide_when_inactive"
 					]
 				},
+				"usb_manager": {
+					"type": "object",
+					"properties": {
+						"icon": {
+							"type": "string",
+							"default": "",
+							"description": "Icon shown for USB manager widget."
+						},
+						"label": {
+							"type": "boolean",
+							"default": false,
+							"description": "Show USB label in panel widget."
+						},
+						"tooltip": {
+							"type": "boolean",
+							"default": true,
+							"description": "Show tooltip with detected USB drive count."
+						},
+						"auto_refresh": {
+							"type": "boolean",
+							"default": true,
+							"description": "Refresh device list periodically while popover is open."
+						},
+						"refresh_interval": {
+							"type": "number",
+							"default": 5,
+							"description": "Refresh interval in seconds for USB device scan."
+						}
+					},
+					"required": [
+						"icon",
+						"label",
+						"tooltip",
+						"auto_refresh",
+						"refresh_interval"
+					]
+				},
 				"breathe": {
 					"type": "object",
 					"properties": {
@@ -1662,11 +1699,6 @@
 						"tooltip": {
 							"type": "boolean",
 							"default": true
-						},
-						"auto_start": {
-							"type": "boolean",
-							"default": false,
-							"description": "Automatically start the timer when the widget is created"
 						}
 					},
 					"required": [
@@ -2183,6 +2215,7 @@
 									"world_clock",
 									"theme_switcher",
 									"wallpaper",
+									"usb_manager",
 									"privacy_indicator"
 								],
 								"description": "Specifies the widget to display."
@@ -2274,6 +2307,7 @@
 									"world_clock",
 									"theme_switcher",
 									"wallpaper",
+									"usb_manager",
 									"privacy_indicator"
 								],
 								"description": "Specifies the widget to display."
@@ -2365,6 +2399,7 @@
 									"world_clock",
 									"theme_switcher",
 									"wallpaper",
+									"usb_manager",
 									"privacy_indicator"
 								],
 								"description": "Specifies the widget to display."
@@ -2469,6 +2504,7 @@
 										"world_clock",
 										"theme_switcher",
 										"wallpaper",
+										"usb_manager",
 										"privacy_indicator"
 									],
 									"description": "Specifies the widget to display."
@@ -2581,6 +2617,7 @@
 										"world_clock",
 										"theme_switcher",
 										"wallpaper",
+										"usb_manager",
 										"privacy_indicator"
 									],
 									"description": "Specifies the widget to display."
