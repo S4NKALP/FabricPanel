@@ -55,6 +55,12 @@ def register_temp_resource(path: str):
     TEMP_PATHS.add(path)
 
 
+def expand_env(value: str | None) -> str:
+    if not value:
+        return ""
+    return os.path.expanduser(os.path.expandvars(value))
+
+
 def normalize_address(address: str | None) -> str | None:
     if not address:
         return None

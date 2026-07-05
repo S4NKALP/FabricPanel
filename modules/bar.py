@@ -123,6 +123,7 @@ LAZY_WIDGETS_LIST = {
     "window_title": "widgets.window_title.WindowTitleWidget",
     "workspaces": "widgets.workspaces.WorkSpacesWidget",
     "world_clock": "widgets.world_clock.WorldClockWidget",
+    "git_companion": "widgets.git_companion.GitCompanionWidget",
 }
 
 

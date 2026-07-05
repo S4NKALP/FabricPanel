@@ -152,6 +152,18 @@ DEFAULT_CONFIG = {
         },
         "divider": {"size": 2},
         "cheatsheet": {},
+        "git_companion": {
+            "icon": "",
+            "label": False,
+            "tooltip": True,
+            "username": "rubiin",
+            "repository": "rubiin/tsumiki",
+            "width": 420,
+            "height": 630,
+            "avatar_size": 44,
+            "default_tab": "issues",
+            "cache_ttl": 300,
+        },
         "pomodoro": {
             "icon": "🍅",
             "label": True,

@@ -18,7 +18,7 @@ from shared.dialog import Dialog
 from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
 from utils.constants import ASSETS_DIR
-from utils.functions import lazy_load_class, safe_disconnect
+from utils.functions import expand_env, lazy_load_class, safe_disconnect
 from utils.icons import get_text_icon, network_icon_to_text_icons
 from utils.widget_utils import (
     get_audio_icon_name,
@@ -171,7 +171,7 @@ class QuickSettingsMenu(Box):
         controls_config = self.config.get("controls", {})
 
         raw_avatar_path = user_config.get("avatar", "$HOME/.face")
-        avatar_path = os.path.expanduser(os.path.expandvars(raw_avatar_path))
+        avatar_path = expand_env(raw_avatar_path)
         default_image = f"{ASSETS_DIR}/images/banner.jpg"
         user_image = avatar_path if os.path.exists(avatar_path) else default_image
         if user_image == default_image:
