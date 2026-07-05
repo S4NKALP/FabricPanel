@@ -17,6 +17,11 @@
   min-width: 180px;
   padding: 10px;
 
+  #usb-manager-title, .title-icon {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
   #usb-manager-header {
     margin-bottom: 6px;
   }
@@ -41,7 +46,7 @@
   }
 
   .usb-manager-btn {
-    background-color: theme.$accent-green;
+    background-color: theme.$accent-purple;
     color: theme.$background-dark;
 
     border: variable.$border;
@@ -68,6 +73,8 @@
   }
 
   #usb-manager-footer {
+    border-top: variable.$border;
+    padding-top: 6px;
     margin-top: 6px;
   }
 }

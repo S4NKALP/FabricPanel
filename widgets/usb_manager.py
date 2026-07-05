@@ -40,7 +40,13 @@ class USBManagerMenu(Box):
         self.title = Label(
             label="USB Manager",
             h_align="start",
+            name="usb-manager-title",
             style_classes=["panel-text"],
+        )
+
+        self.title_icon = nerd_font_icon(
+            icon="󰕓",
+            props={"style_classes": ["panel-font-icon", "title-icon"]},
         )
 
         self.refresh_button = HoverButton(
@@ -58,7 +64,7 @@ class USBManagerMenu(Box):
             name="usb-manager-header",
             orientation="h",
             h_expand=True,
-            start_children=[self.title],
+            start_children=[self.title_icon, self.title],
             end_children=[self.refresh_button],
         )
 
@@ -179,7 +185,7 @@ class USBManagerMenu(Box):
                     "LABEL,MOUNTPOINT,RM,HOTPLUG,TRAN"
                 )
             )
-            print(f"[USBManager] lsblk output: {output}")
+
         except Exception as err:
             logger.warning(f"[USBManager] lsblk command failed: {err}")
             output = ""

@@ -418,7 +418,7 @@ tooltip = true
 
 [layout]
 left_section = ["@group:0"]
-middle_section = ["date_time", "weather", "mpris"]
+middle_section = ["date_time", "weather", "usb_manager"]
 right_section = [ "@group:1","@group:2", "system_tray", "power"]
 
 [[widget_groups]]
