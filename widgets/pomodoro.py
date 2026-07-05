@@ -4,9 +4,11 @@ from fabric.utils import GLib, Gtk
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.label import Label
+from fabric.widgets.overlay import Overlay
 
 from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
+from utils.icons import get_text_icon
 from utils.widget_utils import nerd_font_icon
 
 
@@ -88,11 +90,35 @@ class PomodoroMenu(Box):
         # Circular progress
         self.progress = CircularProgressWidget(size=200)
 
+        self._icon_play = get_text_icon("mpris.playing") or "▶"
+        self._icon_pause = get_text_icon("mpris.paused") or "⏸"
+        self._icon_skip = get_text_icon("mpris.next") or "⏭"
+        self._icon_refresh = get_text_icon("ui.refresh") or "↻"
+
         # Timer display (MM:SS format)
         self.timer_label = Label(
             name="pomodoro-timer",
             markup="<span font='38' color='#f0d0d0'>00:00</span>",
             h_align="center",
+            v_align="center",
+        )
+
+        center_content = Box(
+            name="pomodoro-overlay-content",
+            orientation="v",
+            spacing=6,
+            h_align="center",
+            v_align="center",
+            children=[
+                self.phase_label,
+                self.timer_label,
+            ],
+        )
+
+        progress_overlay = Overlay(
+            name="pomodoro-progress-overlay",
+            child=self.progress,
+            overlays=[center_content],
         )
 
         center_box = Box(
@@ -101,30 +127,28 @@ class PomodoroMenu(Box):
             spacing=12,
             h_align="center",
             children=[
-                self.phase_label,
-                self.progress,
-                self.timer_label,
+                progress_overlay,
             ],
         )
 
         # Control buttons
         self.btn_pause = Button(
-            label="⏸ Pause",
+            label=f"{self._icon_play} Start",
             on_clicked=self._on_pause_click,
             name="pomodoro-btn-pause",
         )
         self.btn_skip = Button(
-            label="⏭ Skip",
+            label=f"{self._icon_skip} Skip",
             on_clicked=self._on_skip_click,
             name="pomodoro-btn-skip",
         )
         self.btn_reset = Button(
-            label="↻ Reset",
+            label=f"{self._icon_refresh} Reset",
             on_clicked=self._on_reset_click,
             name="pomodoro-btn-reset",
         )
         self.btn_reset_all = Button(
-            label="⟲ Reset All",
+            label=f"{self._icon_refresh} Reset All",
             on_clicked=self._on_reset_all_click,
             name="pomodoro-btn-reset-all",
         )
@@ -198,7 +222,11 @@ class PomodoroMenu(Box):
         self.progress.set_progress(self._get_progress())
 
         # Update button state
-        btn_label = "⏹ Stop" if self.is_running else "▶ Start"
+        btn_label = (
+            f"{self._icon_pause} Pause"
+            if self.is_running
+            else f"{self._icon_play} Start"
+        )
         self.btn_pause.set_label(btn_label)
 
     def _tick(self) -> bool:

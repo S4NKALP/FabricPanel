@@ -23,19 +23,27 @@
     #pomodoro-center {
       margin: 12px 0;
 
+      #pomodoro-progress-overlay {
+        margin: 0;
+      }
+
+      #pomodoro-overlay-content {
+        margin: 0;
+      }
+
       #pomodoro-phase {
         color: #ffffff;
         font-size: 14px;
         font-weight: 500;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
       }
 
       #pomodoro-timer {
         color: #f0d0d0;
-        font-size: 48px;
+        font-size: 52px;
         font-weight: bold;
-        font-family: monospace;
-        margin: 12px 0;
+        font-family: "JetBrainsMono Nerd Font Mono", monospace;
+        margin: 0;
       }
     }
 

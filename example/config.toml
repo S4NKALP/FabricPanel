@@ -428,8 +428,8 @@ tooltip = true
 
 [layout]
 left_section = ["@group:0"]
-middle_section = ["date_time", "weather", "git_companion"]
-right_section = [ "@group:1","@group:2", "git_companion", "system_tray", "power"]
+middle_section = ["date_time", "weather", "pomodoro"]
+right_section = [ "@group:1","@group:2", "system_tray", "power"]
 
 [[widget_groups]]
 widgets = ["workspaces", "window_title"]
