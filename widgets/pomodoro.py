@@ -90,10 +90,10 @@ class PomodoroMenu(Box):
         # Circular progress
         self.progress = CircularProgressWidget(size=200)
 
-        self._icon_play = get_text_icon("mpris.playing") or "▶"
-        self._icon_pause = get_text_icon("mpris.paused") or "⏸"
-        self._icon_skip = get_text_icon("mpris.next") or "⏭"
-        self._icon_refresh = get_text_icon("ui.refresh") or "↻"
+        self._icon_play = ""
+        self._icon_pause = ""
+        self._icon_skip = ""
+        self._icon_refresh = ""
 
         # Timer display (MM:SS format)
         self.timer_label = Label(
