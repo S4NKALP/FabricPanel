@@ -1,15 +1,16 @@
 import json
 import shlex
+from functools import partial
 
 from fabric.utils import (
     GLib,
+    Gtk,
     exec_shell_command,
     invoke_repeater,
     logger,
     remove_handler,
 )
 from fabric.widgets.box import Box
-from fabric.widgets.button import Button
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.label import Label
 
@@ -76,21 +77,28 @@ class USBManagerMenu(Box):
             v_expand=True,
         )
 
+        self.content = Box(
+            name="usb-manager-content",
+            orientation="v",
+            h_expand=True,
+            v_expand=True,
+        )
+
         self.unmount_all_button = HoverButton(
             name="usb-manager-unmount-all",
             style_classes=["usb-manager-btn"],
-            child=Label(
+            child=self._build_button_content(
+                icon="󱘖",
                 label="Unmount All",
-                style_classes=["panel-text", "operation-all"],
             ),
             on_clicked=self.unmount_all,
         )
         self.eject_all_button = HoverButton(
             name="usb-manager-eject-all",
             style_classes=["usb-manager-btn"],
-            child=Label(
-                label="Mount All",
-                style_classes=["panel-text", "operation-all"],
+            child=self._build_button_content(
+                icon="⏏",
+                label="Eject All",
             ),
             on_clicked=self.eject_all,
         )
@@ -103,7 +111,7 @@ class USBManagerMenu(Box):
             end_children=[self.eject_all_button],
         )
 
-        self.children = [header, self.device_list, footer]
+        self.children = [header, self.content, footer]
 
         if self.config.get("auto_refresh", True):
             interval_ms = max(1000, int(self.config.get("refresh_interval", 5) * 1000))
@@ -119,9 +127,12 @@ class USBManagerMenu(Box):
             for device in self.devices
             if device.get("parent_path")
         }
+        has_devices = bool(self.devices)
 
-        self.unmount_all_button.set_sensitive(mounted_count > 0)
-        self.eject_all_button.set_sensitive(bool(parent_paths))
+        self.unmount_all_button.set_visible(has_devices)
+        self.eject_all_button.set_visible(has_devices)
+        self.unmount_all_button.set_sensitive(has_devices and mounted_count > 0)
+        self.eject_all_button.set_sensitive(has_devices and bool(parent_paths))
 
     def _on_refresh_tick(self, *_):
         self.refresh_devices()
@@ -164,6 +175,9 @@ class USBManagerMenu(Box):
                         "fstype": str(node.get("fstype", "")).upper(),
                         "label": node.get("label") or "",
                         "mountpoint": node.get("mountpoint") or "",
+                        "fsuse_pct": node.get("fsuse%") or "",
+                        "fsused": node.get("fsused") or "",
+                        "fsavail": node.get("fsavail") or "",
                         "parent_path": active_parent.get("path", node.get("path", "")),
                         "parent_name": active_parent.get("name", node.get("name", "")),
                     }
@@ -182,7 +196,7 @@ class USBManagerMenu(Box):
             output = exec_shell_command(
                 (
                     "lsblk -J -o NAME,PATH,TYPE,SIZE,FSTYPE,"
-                    "LABEL,MOUNTPOINT,RM,HOTPLUG,TRAN"
+                    "LABEL,MOUNTPOINT,FSUSE%,FSUSED,FSAVAIL,RM,HOTPLUG,TRAN"
                 )
             )
 
@@ -228,82 +242,243 @@ class USBManagerMenu(Box):
         return parsed
 
     def _render_devices(self, error_message: str | None = None):
-        self.device_list.remove_all()
-
         if error_message:
-            self.device_list.add(
-                Label(
-                    label=error_message,
-                    style_classes=["panel-text", "usb-manager-status"],
-                    h_align="start",
+            self.devices = []
+            self._set_content(
+                self._build_status_view(
+                    title=error_message,
+                    subtitle="Check lsblk permissions and try refresh",
+                    icon="",
                 )
             )
+            self._update_footer_buttons()
             return
 
         if not self.devices:
-            self.device_list.add(
-                Label(
-                    label="No removable USB drives detected",
-                    style_classes=["panel-text", "usb-manager-status"],
-                    h_align="start",
+            self._set_content(
+                self._build_status_view(
+                    title="No USB devices detected",
+                    subtitle="Plug in a USB drive to get started",
+                    icon="󰕓",
                 )
             )
+            self._update_footer_buttons()
             return
 
+        self.device_list.remove_all()
         for device in self.devices:
             self.device_list.add(self._build_device_row(device))
 
+        self._set_content(self.device_list)
+        self._update_footer_buttons()
+
+    def _set_content(self, child: Box | ListBox):
+        for existing in self.content.get_children():
+            self.content.remove(existing)
+        self.content.add(child)
+
+    def _build_status_view(self, title: str, subtitle: str, icon: str) -> Box:
+        icon_widget = nerd_font_icon(
+            icon=icon,
+            props={"style_classes": ["panel-font-icon", "usb-manager-status-icon"]},
+        )
+
+        title_label = Label(
+            label=title,
+            h_align="center",
+            style_classes=["panel-text", "usb-manager-status-title"],
+        )
+
+        subtitle_label = Label(
+            label=subtitle,
+            h_align="center",
+            style_classes=["panel-text", "usb-manager-status-subtitle"],
+        )
+
+        return Box(
+            name="usb-manager-status-view",
+            orientation="v",
+            spacing=8,
+            h_align="center",
+            v_align="center",
+            h_expand=True,
+            v_expand=True,
+            children=[icon_widget, title_label, subtitle_label],
+        )
+
     def _build_device_row(self, device: dict) -> Box:
         mounted = bool(device.get("mountpoint"))
-        action_label = "Unmount" if mounted else "Mount"
+        primary_label = "Open" if mounted else "Mount"
+        usage_text = self._build_usage_text(device)
+        usage_fraction = self._usage_fraction(device)
 
         title = Label(
-            label=device.get("name", "unknown"),
+            label=device.get("label", "unknown"),
             h_align="start",
-            name="usb-manager-device-title",
-            style_classes=["panel-text"],
+            name="usb-manager-device-name",
+            style_classes=["panel-text", "usb-manager-device-name"],
         )
 
         details_parts = [device.get("size", "?"), device.get("fstype", "")]
-        if device.get("label"):
-            details_parts.append(device.get("label"))
 
         details = Label(
             label=" • ".join([part for part in details_parts if part]),
             h_align="start",
-            style_classes=["panel-text"],
+            style_classes=["panel-text", "usb-manager-device-meta"],
         )
 
-        action_button = Button(
-            name="usb-manager-action",
-            style_classes=["usb-manager-btn"],
-            label=action_label,
-            on_clicked=(
-                (lambda *_, d=device: self.unmount_device(d))
-                if mounted
-                else (lambda *_, d=device: self.mount_device(d))
-            ),
+        mountpoint_label = Label(
+            label=device.get("mountpoint") or "",
+            h_align="start",
+            style_classes=["panel-text", "usb-manager-device-path"],
         )
+
+        usage_label = Label(
+            label=usage_text,
+            h_align="start",
+            visible=bool(usage_text),
+            style_classes=["panel-text", "usb-manager-device-usage"],
+        )
+
+        usage_progress = Gtk.ProgressBar()
+        usage_progress.set_name("usb-manager-usage-progress")
+        usage_progress.set_fraction(usage_fraction or 0.0)
+        usage_progress.set_visible(usage_fraction is not None)
+        usage_progress.set_hexpand(True)
+        usage_progress.set_vexpand(False)
+        usage_progress.set_show_text(False)
 
         icon = nerd_font_icon(
             icon="󰕓",
             props={"style_classes": ["panel-font-icon"]},
         )
 
-        header = Box(
+        status_badge = Label(
+            label="Mounted" if mounted else "Ready",
+            style_classes=["panel-text", "usb-manager-status-badge"],
+            visible=mounted,
+        )
+
+        title_row = Box(
             name="usb-manager-item-header",
             orientation="h",
+            spacing=6,
             h_expand=True,
             children=[icon, title],
         )
 
-        row_children = [header, details, action_button]
+        header = CenterBox(
+            name="usb-manager-device-header",
+            orientation="h",
+            h_expand=True,
+            start_children=[title_row],
+            end_children=[status_badge],
+        )
+
+        primary_button = HoverButton(
+            name="usb-manager-action-primary",
+            style_classes=["usb-manager-btn", "usb-manager-primary-btn"],
+            h_expand=True,
+            child=self._build_button_content(
+                icon="" if mounted else "",
+                label=primary_label,
+            ),
+            on_clicked=(
+                partial(self.open_device, device)
+                if mounted
+                else partial(self.mount_device, device)
+            ),
+        )
+
+        secondary_button = HoverButton(
+            name="usb-manager-action-secondary",
+            style_classes=["usb-manager-btn", "usb-manager-icon-btn"],
+            visible=mounted,
+            child=nerd_font_icon(
+                icon="󱘖",
+                props={"style_classes": ["panel-font-icon"]},
+            ),
+            tooltip_text="Unmount",
+            on_clicked=partial(self.unmount_device, device),
+        )
+
+        eject_button = HoverButton(
+            name="usb-manager-action-eject",
+            style_classes=["usb-manager-btn", "usb-manager-icon-btn"],
+            child=nerd_font_icon(
+                icon="⏏",
+                props={"style_classes": ["panel-font-icon"]},
+            ),
+            tooltip_text="Eject",
+            on_clicked=partial(self.eject_device, device),
+        )
+
+        actions = Box(
+            name="usb-manager-device-actions",
+            orientation="h",
+            spacing=6,
+            h_expand=True,
+            children=[primary_button, secondary_button, eject_button],
+        )
+
+        row_children = [
+            header,
+            details,
+            mountpoint_label,
+            usage_progress,
+            usage_label,
+            actions,
+        ]
 
         return Box(
             name="usb-manager-item",
             orientation="v",
-            spacing=4,
+            spacing=3,
             children=row_children,
+        )
+
+    @staticmethod
+    def _build_usage_text(device: dict) -> str:
+        used = str(device.get("fsused") or "").strip()
+        free = str(device.get("fsavail") or "").strip()
+        if used and free:
+            return f"{used} used           {free} free"
+        if used:
+            return f"{used} used"
+        if free:
+            return f"{free} free"
+        return ""
+
+    @staticmethod
+    def _usage_fraction(device: dict) -> float | None:
+        raw_pct = str(device.get("fsuse_pct") or "").strip().rstrip("%")
+        if not raw_pct:
+            return None
+
+        try:
+            pct = float(raw_pct)
+        except ValueError:
+            return None
+
+        if pct < 0:
+            pct = 0
+        if pct > 100:
+            pct = 100
+        return pct / 100.0
+
+    @staticmethod
+    def _build_button_content(icon: str, label: str) -> Box:
+        return Box(
+            orientation="h",
+            spacing=5,
+            h_align="center",
+            children=[
+                nerd_font_icon(
+                    icon=icon,
+                    props={"style_classes": ["panel-font-icon", "btn-icon"]},
+                ),
+                Label(label=label, style_classes=["panel-text"]),
+            ],
         )
 
     def _run_command(self, command: str):
@@ -321,17 +496,22 @@ class USBManagerMenu(Box):
         self.refresh_devices()
         return False
 
-    def mount_device(self, device: dict):
+    def mount_device(self, device: dict, *_):
         path = device.get("path")
         if path:
             self._run_command(f"udisksctl mount -b {shlex.quote(path)}")
 
-    def unmount_device(self, device: dict):
+    def open_device(self, device: dict, *_):
+        mountpoint = device.get("mountpoint")
+        if mountpoint:
+            self._run_command(f"xdg-open {shlex.quote(mountpoint)}")
+
+    def unmount_device(self, device: dict, *_):
         path = device.get("path")
         if path:
             self._run_command(f"udisksctl unmount -b {shlex.quote(path)}")
 
-    def eject_device(self, device: dict):
+    def eject_device(self, device: dict, *_):
         path = device.get("parent_path") or device.get("path")
         if path:
             self._run_command(f"udisksctl power-off -b {shlex.quote(path)}")
@@ -384,7 +564,10 @@ class USBManagerWidget(ButtonWidget, PopoverMixin):
         if self.config.get("tooltip", True) and self.tooltips_enabled:
             self.set_tooltip_text("USB Manager")
 
-        self.setup_popover(lambda: USBManagerMenu(parent=self, config=self.config))
+        self.setup_popover(self._build_popover)
+
+    def _build_popover(self):
+        return USBManagerMenu(parent=self, config=self.config)
 
     def update_device_count(self, count: int):
         if self.config.get("tooltip", True) and self.tooltips_enabled:
