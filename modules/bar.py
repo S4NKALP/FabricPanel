@@ -91,6 +91,7 @@ LAZY_WIDGETS_LIST = {
     "hypridle": "widgets.hypridle.HyprIdleWidget",
     "hyprpicker": "widgets.hyprpicker.HyprPickerWidget",
     "hyprsunset": "widgets.hyprsunset.HyprSunsetWidget",
+    "ip_monitor": "widgets.ip_monitor.IPMonitorWidget",
     "kanban": "widgets.kanban.KanbanWidget",
     "keyboard": "widgets.keyboard_layout.KeyboardLayoutWidget",
     "language": "widgets.language.LanguageWidget",

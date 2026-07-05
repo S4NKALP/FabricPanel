@@ -1,0 +1,100 @@
+@use "common";
+@use "variable";
+
+#ip_monitor {
+  @include common.widget_border(
+    variable.$bar-widgets-ip_monitor-border-radius,
+    variable.$bar-widgets-ip_monitor-border-enabled,
+    variable.$bar-widgets-ip_monitor-border-width
+  );
+
+  @include common.nerd-icon(variable.$bar-widgets-ip_monitor-icon_size, null);
+}
+
+#ip-monitor-window {
+  min-width: 340px;
+  padding: 8px;
+  border-radius: 14px;
+
+  #ip-monitor-header {
+    .ip-monitor-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #e4f0ff;
+    }
+
+    #ip-monitor-refresh-btn {
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 14px;
+      background-color: #58bdf7;
+      color: #06263f;
+
+      &:hover {
+        background-color: #76cafa;
+      }
+    }
+
+    .ip-monitor-refresh-icon {
+      font-size: 12px;
+    }
+
+    .ip-monitor-refresh-label {
+      font-weight: 700;
+      font-size: 13px;
+    }
+  }
+
+  #ip-monitor-hero-card,
+  #ip-monitor-details-card {
+    background-color: #263749;
+    border-radius: 14px;
+    padding: 10px;
+  }
+
+  #ip-monitor-hero-card {
+    min-height: 96px;
+
+    .ip-monitor-hero-icon {
+      color: #58bdf7;
+      font-size: 28px;
+    }
+
+    .ip-monitor-hero-ip {
+      color: #f4f8ff;
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .ip-monitor-hero-location {
+      color: #c8d9eb;
+      font-size: 16px;
+    }
+  }
+
+  .ip-monitor-section-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #e4f0ff;
+    margin-top: 2px;
+  }
+
+  #ip-monitor-details-card {
+    .ip-monitor-detail-key {
+      min-width: 96px;
+      color: #95afc8;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .ip-monitor-detail-value {
+      color: #eaf3ff;
+      font-size: 14px;
+    }
+  }
+
+  .ip-monitor-last-updated {
+    color: #86a4bf;
+    font-size: 11px;
+  }
+}

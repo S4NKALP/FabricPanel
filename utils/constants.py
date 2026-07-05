@@ -170,6 +170,7 @@ DEFAULT_CONFIG = {
             "label_text": "Pomo",
             "tooltip": True,
         },
+        "ip_monitor": {},
         "hypridle": {
             "enabled_icon": "",
             "disabled_icon": "",

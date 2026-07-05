@@ -80,6 +80,51 @@
 						}
 					}
 				},
+				"ip_monitor": {
+					"type": "object",
+					"properties": {
+						"tooltip": {
+							"type": "boolean",
+							"default": true,
+							"description": "Determines whether the IP Monitor widget has a tooltip."
+						},
+						"tooltip_text": {
+							"type": "string",
+							"default": "IP Information",
+							"description": "Tooltip text shown for the IP Monitor widget."
+						},
+						"label": {
+							"type": "boolean",
+							"default": false,
+							"description": "Determines whether to show text next to the icon."
+						},
+						"label_text": {
+							"type": "string",
+							"default": "IP",
+							"description": "Text label shown when label is enabled."
+						},
+						"icon": {
+							"type": "string",
+							"default": "󰖟",
+							"description": "Icon displayed in the IP Monitor widget."
+						},
+						"endpoint": {
+							"type": "string",
+							"default": "https://ipapi.co/json/",
+							"description": "API endpoint used to fetch IP information."
+						},
+						"refresh_command": {
+							"type": "string",
+							"default": "qs -c noctalia-shell ipc call plugin:ip-monitor refreshIp",
+							"description": "Command shown in the IPC section for refreshing IP."
+						},
+						"toggle_command": {
+							"type": "string",
+							"default": "qs -c noctalia-shell ipc call plugin:ip-monitor toggle",
+							"description": "Command shown in the IPC section for toggling the plugin."
+						}
+					}
+				},
 				"battery": {
 					"type": "object",
 					"properties": {
@@ -2221,6 +2266,7 @@
 								"enum": [
 									"app_launcher_button",
 									"git_companion",
+									"ip_monitor",
 									"battery",
 									"bluetooth",
 									"brightness",
@@ -2314,6 +2360,7 @@
 								"enum": [
 									"app_launcher_button",
 									"git_companion",
+									"ip_monitor",
 									"battery",
 									"bluetooth",
 									"brightness",
@@ -2407,6 +2454,7 @@
 								"enum": [
 									"app_launcher_button",
 									"git_companion",
+									"ip_monitor",
 									"battery",
 									"bluetooth",
 									"brightness",
@@ -2513,6 +2561,7 @@
 									"enum": [
 										"app_launcher_button",
 										"git_companion",
+										"ip_monitor",
 										"battery",
 										"bluetooth",
 										"brightness",
