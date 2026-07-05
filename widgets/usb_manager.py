@@ -6,9 +6,7 @@ from fabric.utils import (
     GLib,
     Gtk,
     exec_shell_command,
-    invoke_repeater,
     logger,
-    remove_handler,
 )
 from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
@@ -36,7 +34,6 @@ class USBManagerMenu(Box):
         self._parent = parent
         self.config = config or {}
         self.devices = []
-        self._refresh_timer_id = 0
 
         self.title = Label(
             label="USB Manager",
@@ -49,7 +46,6 @@ class USBManagerMenu(Box):
             icon="󰕓",
             props={"style_classes": ["panel-font-icon", "title-icon"]},
         )
-
 
         self.refresh_button = ScanButton(
             on_clicked=self._on_refresh_clicked,
@@ -109,10 +105,6 @@ class USBManagerMenu(Box):
 
         self.children = [header, self.content, footer]
 
-        if self.config.get("auto_refresh", True):
-            interval_ms = max(1000, int(self.config.get("refresh_interval", 5) * 1000))
-            self._refresh_timer_id = invoke_repeater(interval_ms, self._on_refresh_tick)
-
         self.connect("destroy", self._on_destroy)
         self.refresh_devices()
 
@@ -130,17 +122,11 @@ class USBManagerMenu(Box):
         self.unmount_all_button.set_sensitive(has_devices and mounted_count > 0)
         self.eject_all_button.set_sensitive(has_devices and bool(parent_paths))
 
-    def _on_refresh_tick(self, *_):
-        self.refresh_devices()
-        return True
-
     def _on_refresh_clicked(self, *_):
         self.refresh_devices(animate=True)
 
     def _on_destroy(self, *_):
-        if self._refresh_timer_id:
-            remove_handler(self._refresh_timer_id)
-            self._refresh_timer_id = 0
+        return None
 
     def close(self, *_):
         if self._parent:
@@ -569,6 +555,11 @@ class USBManagerWidget(ButtonWidget, PopoverMixin):
 
     def _build_popover(self):
         return USBManagerMenu(parent=self, config=self.config)
+
+    def show_popover(self, *_):
+        super().show_popover()
+        if self.popup:
+            self.popup.content.refresh_devices()
 
     def update_device_count(self, count: int):
         if self.config.get("tooltip", True) and self.tooltips_enabled:

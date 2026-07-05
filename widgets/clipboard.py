@@ -151,7 +151,6 @@ class ClipHistoryMenu(Box):
 
         self.children = [self.header_box, self.scrolled_window]
         self.connect("destroy", self._on_destroy)
-        self.open()  # Load items when the menu is created
 
     def on_icon_press(self, entry, icon_pos, event):
         if icon_pos == Gtk.EntryIconPosition.SECONDARY:
@@ -838,4 +837,13 @@ class ClipBoardWidget(ButtonWidget, PopoverMixin):
         if self.config.get("tooltip", False) and self.tooltips_enabled:
             self.set_tooltip_text("Clipboard History")
 
-        self.setup_popover(lambda: ClipHistoryMenu(parent=self, config=self.config))
+        self.setup_popover(self._build_popover)
+
+    def _build_popover(self):
+        return ClipHistoryMenu(parent=self, config=self.config)
+
+    def show_popover(self, *_):
+        super().show_popover()
+        if self.popup:
+            self.popup.content._loading = False
+            self.popup.content.open()
