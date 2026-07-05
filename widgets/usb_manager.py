@@ -14,7 +14,7 @@ from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.label import Label
 
-from shared.buttons import HoverButton
+from shared.buttons import HoverButton, ScanButton
 from shared.list import ListBox
 from shared.mixins import PopoverMixin
 from shared.widget_container import ButtonWidget
@@ -50,15 +50,11 @@ class USBManagerMenu(Box):
             props={"style_classes": ["panel-font-icon", "title-icon"]},
         )
 
-        self.refresh_button = HoverButton(
-            name="usb-manager-refresh",
-            style_classes=["usb-manager-btn"],
-            child=nerd_font_icon(
-                icon="",
-                props={"style_classes": ["panel-font-icon"]},
-            ),
+
+        self.refresh_button = ScanButton(
+            on_clicked=self._on_refresh_clicked,
+            sensitive=False,
             tooltip_text="Refresh",
-            on_clicked=self.refresh_devices,
         )
 
         header = CenterBox(
@@ -138,6 +134,9 @@ class USBManagerMenu(Box):
         self.refresh_devices()
         return True
 
+    def _on_refresh_clicked(self, *_):
+        self.refresh_devices(animate=True)
+
     def _on_destroy(self, *_):
         if self._refresh_timer_id:
             remove_handler(self._refresh_timer_id)
@@ -191,7 +190,9 @@ class USBManagerMenu(Box):
 
         return devices
 
-    def refresh_devices(self, *_):
+    def refresh_devices(self, *_, animate: bool = False):
+        if animate:
+            self.refresh_button.play_animation()
         try:
             output = exec_shell_command(
                 (
