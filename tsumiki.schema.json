@@ -3039,6 +3039,100 @@
 							"type": "string",
 							"description": "Specifies the format of the time displayed on the desktop clock.",
 							"default": "HH:mm"
+						},
+						"type": {
+							"type": "string",
+							"enum": [
+								"default",
+								"cookie"
+							],
+							"description": "Selects the desktop clock style.",
+							"default": "default"
+						},
+						"cookie_size": {
+							"type": "integer",
+							"description": "Base size of the cookie clock face.",
+							"default": 230
+						},
+						"cookie_sides": {
+							"type": "integer",
+							"description": "Number of sine lobes used to shape the cookie face.",
+							"default": 9
+						},
+						"cookie_dial_style": {
+							"type": "string",
+							"enum": [
+								"dots",
+								"numbers",
+								"full",
+								"none"
+							],
+							"description": "Dial marker style for the cookie clock.",
+							"default": "dots"
+						},
+						"cookie_hour_hand_style": {
+							"type": "string",
+							"enum": [
+								"fill",
+								"hollow",
+								"classic",
+								"hide"
+							],
+							"description": "Hour hand style for the cookie clock.",
+							"default": "fill"
+						},
+						"cookie_minute_hand_style": {
+							"type": "string",
+							"enum": [
+								"bold",
+								"medium",
+								"thin",
+								"classic",
+								"hide"
+							],
+							"description": "Minute hand style for the cookie clock.",
+							"default": "medium"
+						},
+						"cookie_second_hand_style": {
+							"type": "string",
+							"enum": [
+								"dot",
+								"classic",
+								"line",
+								"hide"
+							],
+							"description": "Second hand style for the cookie clock.",
+							"default": "dot"
+						},
+						"cookie_date_style": {
+							"type": "string",
+							"enum": [
+								"bubble",
+								"rect",
+								"hide"
+							],
+							"description": "Date indicator style for the cookie clock.",
+							"default": "bubble"
+						},
+						"cookie_show_seconds": {
+							"type": "boolean",
+							"description": "Whether to render the second hand in cookie clock mode.",
+							"default": true
+						},
+						"cookie_show_hour_marks": {
+							"type": "boolean",
+							"description": "Whether to render the inner hour marks circle.",
+							"default": false
+						},
+						"cookie_background_opacity": {
+							"type": "number",
+							"description": "Opacity multiplier for the cookie clock background.",
+							"default": 1.0
+						},
+						"cookie_widget_scale": {
+							"type": "number",
+							"description": "Scale multiplier for cookie clock geometry.",
+							"default": 1.0
 						}
 					}
 				},
