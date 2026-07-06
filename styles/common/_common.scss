@@ -486,9 +486,6 @@ scrolledwindow {
 }
 
 .panel-eventbox {
-  &:hover {
-    color: red;
-  }
 
   .widget-container {
     @include mixins.widget_style(variable.$bar-style-widget);
