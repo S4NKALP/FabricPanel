@@ -51,6 +51,7 @@ class USBManagerMenu(Box):
             on_clicked=self._on_refresh_clicked,
             sensitive=False,
             tooltip_text="Refresh",
+            size = 17
         )
 
         header = CenterBox(
