@@ -175,6 +175,7 @@ class SystemTrayWidget(ButtonWidget, PopoverMixin, BaseSystemTray):
         self._items: dict[str, HoverButton] = {}
 
         self.icon_size = self.config.get("icon_size", 16)
+        self.hidden_list = self.config.get("hidden", [])
 
         self.chevron_icon = nerd_font_icon(
             icon=get_text_icon("chevron.down"),
@@ -184,10 +185,13 @@ class SystemTrayWidget(ButtonWidget, PopoverMixin, BaseSystemTray):
         )
 
         # Set children directly in Box to avoid double styling
-        self.container_box.children = (self.tray_box, self.chevron_icon)
+        self.container_box.add(self.tray_box)
 
-        # Create popup menu for hidden items
-        self.popup_menu = SystemTrayMenu(config=self.config, parent_widget=self)
+        if len(self.hidden_list) > 0:
+            self.connect_after.add(self.chevron_icon)
+            self.create_menu()
+            # Connect click handler
+            self.connect("clicked", self.on_click)
 
         self.setup_popover(
             lambda: self.popup_menu,
@@ -209,11 +213,12 @@ class SystemTrayWidget(ButtonWidget, PopoverMixin, BaseSystemTray):
         for item_id in self._watcher.items:
             self.on_item_added(self._watcher, item_id)
 
-        # Connect click handler
-        self.connect("clicked", self.on_click)
-
         # Initial visibility check
         self.update_visibility()
+
+    def create_menu(self):
+        # Create popup menu for hidden items
+        self.popup_menu = SystemTrayMenu(config=self.config, parent_widget=self)
 
     def _on_popover_closed(self, *_):
         self.remove_style_class("active")
@@ -276,8 +281,7 @@ class SystemTrayWidget(ButtonWidget, PopoverMixin, BaseSystemTray):
             return
 
         # Check if item should be hidden in popover
-        hidden_list = self.config.get("hidden", [])
-        is_hidden = any(x.lower() in title.lower() for x in hidden_list)
+        is_hidden = any(x.lower() in title.lower() for x in self.hidden_list)
         item_button = self._bake_item_button(item=item)
         self._items[item.identifier] = item_button
 
