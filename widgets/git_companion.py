@@ -562,7 +562,11 @@ class GitCompanionWidget(ButtonWidget, PopoverMixin):
         )
 
         if self.config.get("label", False):
-            self.container_box.add(Label(label="Git", style_classes=["panel-text"]))
+            self.container_box.add(
+                Label(
+                    label=self.config("label_text", "Git"), style_classes=["panel-text"]
+                )
+            )
 
         if self.config.get("tooltip", True) and self.tooltips_enabled:
             self.set_tooltip_text(self.config.get("tooltip_text", "Open Git Companion"))

@@ -221,9 +221,7 @@ class IPMonitorPopoverContent(Box):
         except Exception:
             ipv4_addr = "-"
 
-        endpoint_template = str(
-            self._config.get("endpoint", "https://ipapi.co/{ip}/json/")
-        )
+        endpoint_template = "https://ipapi.co/{ip}/json/"
 
         if "{ip}" in endpoint_template:
             endpoint = (
@@ -322,7 +320,7 @@ class IPMonitorWidget(ButtonWidget, PopoverMixin):
             )
 
         if self.config.get("tooltip", True) and self.tooltips_enabled:
-            self.set_tooltip_text(self.config.get("tooltip_text", "IP Information"))
+            self.set_tooltip_text("IP Information")
 
         self.setup_popover(
             lambda: IPMonitorPopoverContent(

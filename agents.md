@@ -342,16 +342,9 @@ anchor = "center"
 layer = "overlay"
 ```
 
-In `example/config.toml`:
-```toml
-[modules.my_module]
-enabled = false
-anchor = "center"
-layer = "overlay"
-```
 
 ### Step 6: Add Styling
-Create `styles/_my_module.scss`:
+Create `styles/_my_module.scss`. Always use nesting to avoid global selectors:
 ```scss
 #my-module {
   background-color: rgba(40, 40, 50, 0.95);

@@ -13,7 +13,6 @@
   @include common.nerd-icon(variable.$bar-widgets-git_companion-icon_size, null);
 }
 
-
 #git-companion-window {
   padding: 14px;
   border-radius: 26px;
@@ -21,7 +20,7 @@
   min-height: 630px;
   min-width: 420px;
 
-#git-companion-header {
+  #git-companion-header {
     padding: 0 2px 2px;
   }
 
@@ -64,7 +63,6 @@
     border-radius: 999px;
     background-color: #eef2f8;
     border: 2px solid #2f6df6;
-
   }
 
   #git-companion-avatar {
@@ -110,7 +108,6 @@
 
     &.active {
       background-color: theme.$accent-orange;
-
     }
   }
 

@@ -8,6 +8,7 @@ tooltip = true
 [widgets.git_companion]
 icon = ""
 label = false
+label_text = "Git"
 tooltip = true
 username = "rubiin"
 repository = "rubiin/tsumiki"
@@ -20,10 +21,6 @@ icon = "󰖟"
 label = false
 label_text = "IP"
 tooltip = true
-tooltip_text = "IP Information"
-endpoint = "https://ipapi.co/json/"
-refresh_command = "qs -c noctalia-shell ipc call plugin:ip-monitor refreshIp"
-toggle_command = "qs -c noctalia-shell ipc call plugin:ip-monitor toggle"
 
 [widgets.clipboard]
 icon = ""

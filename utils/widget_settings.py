@@ -752,6 +752,34 @@ PrivacyIndicator = TypedDict(
     },
 )
 
+
+IpMonitor = TypedDict(
+    "IpMonitor",
+    {**BaseConfig.__annotations__, "label_text": str, "icon": str},
+)
+
+
+Pomodoro = TypedDict(
+    "Pomodoro",
+    {**BaseConfig.__annotations__, "label_text": str, "icon": str},
+)
+
+
+GitCompanion = TypedDict(
+    "GitCompanion",
+    {
+        **BaseConfig.__annotations__,
+        "label_text": str,
+        "icon": str,
+        "username": str,
+        "repository": str,
+        "avatar_size": int,
+        "default_tab": str,
+        "cache_ttl": int,
+    },
+)
+
+
 # ScreenShot configuration
 ScreenShot = TypedDict(
     "ScreenShot",
@@ -803,6 +831,8 @@ class Widgets(TypedDict):
     mpris: Mpris
     network_usage: NetworkUsage
     ocr: OCR
+    ip_monitor: IpMonitor
+    pomodoro: Pomodoro
     overview_button: Overview_Button
     wallpaper: WallPaper
     power: PowerButton
@@ -816,6 +846,7 @@ class Widgets(TypedDict):
     system_tray: SystemTray
     submap: Submap
     taskbar: TaskBar
+    git_companion: GitCompanion
     theme: Theme
     theme_switcher: ThemeSwitcher
     usb_manager: USBManager
