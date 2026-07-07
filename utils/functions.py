@@ -1213,3 +1213,26 @@ def safe_disconnect(signal_source, handler_id: int | None) -> None:
     if handler_id is not None:
         with contextlib.suppress(Exception):
             signal_source.disconnect(handler_id)
+
+
+def load_cover_pixbuf(path: str, width: int, height: int):
+    pixbuf = GdkPixbuf.Pixbuf.new_from_file(path)
+
+    src_w = pixbuf.get_width()
+    src_h = pixbuf.get_height()
+
+    scale = max(width / src_w, height / src_h)
+
+    scaled_w = int(src_w * scale)
+    scaled_h = int(src_h * scale)
+
+    scaled = pixbuf.scale_simple(
+        scaled_w,
+        scaled_h,
+        GdkPixbuf.InterpType.BILINEAR,
+    )
+
+    x = (scaled_w - width) // 2
+    y = (scaled_h - height) // 2
+
+    return scaled.new_subpixbuf(x, y, width, height)
