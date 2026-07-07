@@ -44,7 +44,7 @@ class PopoverManager:
             self._overlay = BaseWindow(
                 name="popover-overlay",
                 style_classes=["popover-overlay"],
-                title="tsumiki",
+                title="tsumiki-popup",
                 anchor="left top right bottom",
                 margin="-50px 0px 0px 0px",
                 exclusivity="auto",
