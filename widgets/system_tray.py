@@ -253,7 +253,7 @@ class SystemTrayWidget(ButtonWidget, PopoverMixin, BaseSystemTray):
         # Widget is visible if there are any items (visible or hidden)
         self.set_visible(has_visible_items or has_hidden_items)
 
-    def not_empty(self,item):
+    def not_empty(self, item):
         return len(item) > 0
 
     def on_item_removed(self, _, item_identifier):

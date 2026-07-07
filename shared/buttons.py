@@ -35,7 +35,7 @@ class ScanButton(HoverButton):
 
         self.scan_image = CircularImage(
             image_file=f"{ASSETS_DIR}icons/svg/refresh.svg",
-            size=kwargs.get("size",20),
+            size=kwargs.get("size", 20),
         )
         self.scan_animator = None
 
