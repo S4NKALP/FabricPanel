@@ -339,16 +339,20 @@ class BreathingMenu(Box):
         btn_row = Box(orientation="horizontal", spacing=8)
 
         self._start_btn = Button(
-            label="▶  Start", style_classes=["start-btn"], h_expand=True
+            label="▶  Start",
+            style_classes=["start-btn"],
+            h_expand=True,
+            on_clicked=self._on_start_clicked,
         )
-        self._start_btn.connect("clicked", self._on_start_clicked)
         btn_row.pack_start(self._start_btn, True, True, 0)
 
         self._stop_btn = Button(
-            label="■  Stop", style_classes=["stop-btn"], h_expand=True
+            label="■  Stop",
+            style_classes=["stop-btn"],
+            h_expand=True,
+            sensitive=False,
+            on_clicked=self._stop_exercise,
         )
-        self._stop_btn.set_sensitive(False)
-        self._stop_btn.connect("clicked", lambda _: self._stop_exercise())
         btn_row.pack_start(self._stop_btn, True, True, 0)
 
         content.pack_start(btn_row, False, False, 0)
@@ -382,7 +386,7 @@ class BreathingMenu(Box):
         self._schedule_tick()
         self._update_display()
 
-    def _stop_exercise(self):
+    def _stop_exercise(self, *_):
         self._is_running = False
         self._is_paused = False
         self._phase = ""

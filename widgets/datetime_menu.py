@@ -257,9 +257,8 @@ class DateNotificationMenu(Box):
                 name="clear-button",
                 v_align="center",
                 child=self.clear_icon,
+                on_clicked=self._handle_clear_click,
             )
-            self.clear_button.connect("clicked", self._handle_clear_click)
-
             notification_column_header.pack_end(
                 self.clear_button,
                 False,
@@ -440,6 +439,28 @@ class DateNotificationMenu(Box):
 
         expanded = self._app_expand_state.get(app_name, False)
 
+        def _toggle_group(*_):
+            is_expanded = not self._app_expand_state.get(app_name, False)
+            self._app_expand_state[app_name] = is_expanded
+            revealer.set_reveal_child(is_expanded)
+            peek_box.set_visible(not is_expanded and len(notifications) > 1)
+            group_header.set_visible(is_expanded)
+            top_notification.close_button.set_visible(is_expanded)
+            if is_expanded:
+                deck.add_style_class("group-expanded")
+            else:
+                deck.remove_style_class("group-expanded")
+
+        def _close_group(*_):
+            ids = {self._notification_id(n) for n in notifications}
+            ids.discard(None)
+            for nid in ids:
+                notification_service.remove_notification(nid)
+            self.all_notifications = [
+                n for n in self.all_notifications if self._notification_id(n) not in ids
+            ]
+            self._reload_grouped_list()
+
         # Unified expanded group header: icon + name + collapse + close-all
         collapse_button = Button(
             name="notification-group-collapse-button",
@@ -448,6 +469,7 @@ class DateNotificationMenu(Box):
                 icon=get_text_icon("ui.fold"),
                 props={"style_classes": ["panel-font-icon"]},
             ),
+            on_clicked=_toggle_group,
         )
 
         close_all_button = Button(
@@ -458,6 +480,7 @@ class DateNotificationMenu(Box):
                 icon=get_text_icon("ui.window_close"),
                 props={"style_classes": ["panel-font-icon", "close-icon"]},
             ),
+            on_clicked=_close_group,
         )
 
         group_header = Box(
@@ -545,31 +568,6 @@ class DateNotificationMenu(Box):
 
         if expanded:
             deck.add_style_class("group-expanded")
-
-        def _toggle_group(*_):
-            is_expanded = not self._app_expand_state.get(app_name, False)
-            self._app_expand_state[app_name] = is_expanded
-            revealer.set_reveal_child(is_expanded)
-            peek_box.set_visible(not is_expanded and len(notifications) > 1)
-            group_header.set_visible(is_expanded)
-            top_notification.close_button.set_visible(is_expanded)
-            if is_expanded:
-                deck.add_style_class("group-expanded")
-            else:
-                deck.remove_style_class("group-expanded")
-
-        def _close_group(*_):
-            ids = {self._notification_id(n) for n in notifications}
-            ids.discard(None)
-            for nid in ids:
-                notification_service.remove_notification(nid)
-            self.all_notifications = [
-                n for n in self.all_notifications if self._notification_id(n) not in ids
-            ]
-            self._reload_grouped_list()
-
-        collapse_button.connect("clicked", _toggle_group)
-        close_all_button.connect("clicked", _close_group)
 
         click_surface = EventBox()
         click_surface.add(deck)

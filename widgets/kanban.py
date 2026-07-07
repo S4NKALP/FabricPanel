@@ -41,16 +41,16 @@ class InlineEditor(Box):
         confirm_btn = Button(
             name="kanban-btn",
             child=Label(name="kanban-btn-label", markup=get_text_icon("ui.tick")),
+            on_clicked=self.on_confirm,
+            style_classes=["flat"],
         )
-        confirm_btn.connect("clicked", self.on_confirm)
-        confirm_btn.get_style_context().add_class("flat")
 
         cancel_btn = Button(
             name="kanban-btn",
             child=Label(name="kanban-btn-neg", markup=get_text_icon("ui.window_close")),
+            style_classes=["flat"],
+            on_clicked=self.on_cancel,
         )
-        cancel_btn.connect("clicked", self.on_cancel)
-        cancel_btn.get_style_context().add_class("flat")
 
         # Pack the TextView inside a ScrolledWindow for better appearance.
         sw = ScrolledWindow(

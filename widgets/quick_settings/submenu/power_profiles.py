@@ -63,11 +63,10 @@ class PowerProfileItem(HoverButton):
         return True
 
     def set_active(self, active: str):
-        style_context = self._content_box.get_style_context()
         if self.key == active:
-            style_context.add_class("active")
+            self._content_box.add_style_class("active")
         else:
-            style_context.remove_class("active")
+            self._content_box.remove_style_class("active")
 
 
 class PowerProfileSubMenu(QuickSubMenu):
