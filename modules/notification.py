@@ -218,11 +218,6 @@ class NotificationWidget(EventBox):
         width = widget.get_allocated_width()
         height = widget.get_allocated_height()
 
-        # Background track (subtle, so the bar reads even once it shrinks)
-        cr.set_source_rgba(1, 1, 1, 0.06)
-        cr.rectangle(0, 0, width, height)
-        cr.fill()
-
         elapsed = self.get_timeout() - self._time_remaining
         frac = (
             max(0.0, 1.0 - (elapsed / self.get_timeout()))
